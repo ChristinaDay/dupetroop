@@ -85,6 +85,24 @@ export type LookWithComponents = Look & {
   components: LookComponent[]
 }
 
+// Stash types
+// Note: stash_items is not in database.types.ts yet (added via migration 003).
+// Manually typed until Supabase types are regenerated.
+
+export type StashItem = {
+  id: string
+  user_id: string
+  polish_id: string
+  notes: string | null
+  is_favorite: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type StashItemWithPolish = StashItem & {
+  polish: PolishWithBrand
+}
+
 // Filter types for browse pages
 
 export type PolishFilters = {

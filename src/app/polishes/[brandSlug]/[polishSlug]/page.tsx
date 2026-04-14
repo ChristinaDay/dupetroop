@@ -5,10 +5,12 @@ import { ExternalLink } from 'lucide-react'
 import { getPolishBySlug } from '@/lib/queries/polishes'
 import { getDupesForPolish } from '@/lib/queries/dupes'
 import { getLooksForPolish } from '@/lib/queries/looks'
+import { createClient } from '@/lib/supabase/server'
 import { PolishSwatch } from '@/components/polish/PolishSwatch'
 import { PolishBadge } from '@/components/polish/PolishBadge'
 import { DupeCard } from '@/components/dupe/DupeCard'
 import { LookCard } from '@/components/look/LookCard'
+import { AddToStashButton } from '@/components/stash/AddToStashButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/utils/format'
@@ -31,6 +33,23 @@ export default async function PolishDetailPage({ params }: PageProps) {
   const { brandSlug, polishSlug } = await params
   const polish = await getPolishBySlug(brandSlug, polishSlug)
   if (!polish) notFound()
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Check if this polish is already in the user's stash
+  let stashItemId: string | undefined
+  if (user) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const { data } = await db
+      .from('stash_items')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('polish_id', polish.id)
+      .maybeSingle()
+    stashItemId = data?.id
+  }
 
   const [dupes, looks] = await Promise.all([
     getDupesForPolish(polish.id),
@@ -76,7 +95,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
             {polish.is_limited && <Badge variant="outline" className="text-amber-600 border-amber-600">Limited Edition</Badge>}
             {polish.is_topper && <Badge variant="outline">Topper</Badge>}
           </div>
-          <div className="flex items-center gap-4 mt-4">
+          <div className="flex items-center gap-4 mt-4 flex-wrap">
             {polish.msrp_usd && (
               <span className="text-lg font-bold">{formatPrice(polish.msrp_usd)}</span>
             )}
@@ -87,6 +106,12 @@ export default async function PolishDetailPage({ params }: PageProps) {
                   Shop
                 </a>
               </Button>
+            )}
+            {user && (
+              <AddToStashButton
+                polishId={polish.id}
+                stashItemId={stashItemId}
+              />
             )}
           </div>
           {polish.finish_notes && (

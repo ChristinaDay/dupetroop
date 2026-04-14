@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ExternalLink, ArrowLeft, ShoppingBag } from 'lucide-react'
 import { getLookById } from '@/lib/queries/looks'
+import { getStashedPolishIds } from '@/lib/queries/stash'
+import { createClient } from '@/lib/supabase/server'
 import { PolishSwatch } from '@/components/polish/PolishSwatch'
 import { PolishBadge } from '@/components/polish/PolishBadge'
 import { SourceBadge } from '@/components/look/LookCard'
@@ -38,6 +40,14 @@ export default async function LookDetailPage({ params }: PageProps) {
   const look = await getLookById(lookId)
   if (!look) notFound()
 
+  // Stash awareness — only for signed-in users
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const stashedIds = user ? await getStashedPolishIds(user.id) : new Set<string>()
+
+  const totalComponents = look.components.length
+  const ownedCount = look.components.filter(c => stashedIds.has(c.polish_id)).length
+
   const hasBudgetPath = look.components.some(c => c.best_dupe !== null)
 
   return (
@@ -72,6 +82,35 @@ export default async function LookDetailPage({ params }: PageProps) {
           <p className="mt-3 text-muted-foreground leading-relaxed">{look.description}</p>
         )}
       </div>
+
+      {/* Stash summary banner */}
+      {user && totalComponents > 0 && (
+        <div className={`mb-6 rounded-xl border px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap ${
+          ownedCount === totalComponents
+            ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/30'
+            : 'border-border bg-muted/40'
+        }`}>
+          <div>
+            {ownedCount === totalComponents ? (
+              <p className="font-bold text-emerald-700 dark:text-emerald-400">
+                You can make this right now!
+              </p>
+            ) : ownedCount === totalComponents - 1 ? (
+              <p className="font-bold">You&apos;re one polish away from this look</p>
+            ) : (
+              <p className="font-bold">
+                You own {ownedCount} of {totalComponents} components
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Based on your stash
+            </p>
+          </div>
+          <Link href="/stash" className="text-xs font-semibold hover:underline shrink-0">
+            View stash →
+          </Link>
+        </div>
+      )}
 
       {/* Target polish */}
       {look.target_polish && (
@@ -149,6 +188,11 @@ export default async function LookDetailPage({ params }: PageProps) {
                   <Badge variant="outline" className="text-[10px] py-0">
                     {ROLE_LABELS[comp.role]}
                   </Badge>
+                  {stashedIds.has(comp.polish_id) && (
+                    <Badge className="text-[10px] py-0 ml-auto bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700">
+                      In your stash
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Primary polish */}
