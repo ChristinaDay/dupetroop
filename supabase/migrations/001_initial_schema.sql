@@ -300,18 +300,34 @@ FOR EACH ROW EXECUTE FUNCTION update_opinion_helpful_votes();
 -- Auto-create profile on new auth user
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  base_username TEXT;
+  final_username TEXT;
+  suffix INT := 0;
 BEGIN
-  INSERT INTO profiles (id, username, display_name, avatar_url)
+  base_username := LOWER(REGEXP_REPLACE(SPLIT_PART(NEW.email, '@', 1), '[^a-z0-9_]', '', 'g'));
+  IF base_username = '' THEN
+    base_username := 'user';
+  END IF;
+  final_username := base_username || '_' || SUBSTR(NEW.id::TEXT, 1, 4);
+
+  WHILE EXISTS (SELECT 1 FROM public.profiles WHERE username = final_username) LOOP
+    suffix := suffix + 1;
+    final_username := base_username || '_' || SUBSTR(NEW.id::TEXT, 1, 4) || suffix::TEXT;
+  END LOOP;
+
+  INSERT INTO public.profiles (id, username, display_name, avatar_url)
   VALUES (
     NEW.id,
-    LOWER(SPLIT_PART(NEW.email, '@', 1)) || '_' || SUBSTR(NEW.id::TEXT, 1, 4),
+    final_username,
     NEW.raw_user_meta_data->>'full_name',
     NEW.raw_user_meta_data->>'avatar_url'
   )
   ON CONFLICT (id) DO NOTHING;
+
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
