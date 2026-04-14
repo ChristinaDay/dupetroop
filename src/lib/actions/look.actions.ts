@@ -3,14 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import type { LookSourceType, ComponentRole } from '@/lib/types/app.types'
-
-function slugify(str: string): string {
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
+import { slugify } from '@/lib/utils/slugify'
 
 // ─── Admin: create a look with components in one shot ────────────────────────
 
@@ -141,5 +134,3 @@ export async function rejectLook(
   return { success: true }
 }
 
-// Unused in file but exported for slug utility reuse
-export { slugify }
