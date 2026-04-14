@@ -88,9 +88,9 @@ cream, shimmer, glitter, flakies, duochrome, multichrome, holo, magnetic, jelly,
 ## What Still Needs To Be Done
 
 ### 1. Connect to Supabase (blocker — do this first)
-- [ ] Create a project at [supabase.com](https://supabase.com)
+- [x] Create a project at [supabase.com](https://supabase.com)
 - [ ] Run `supabase/migrations/001_initial_schema.sql` in the SQL Editor (copy the file contents, paste, run)
-- [ ] Copy `.env.example` → `.env.local` and fill in:
+- [x] Copy `.env.example` → `.env.local` and fill in:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   - `SUPABASE_SERVICE_ROLE_KEY`
@@ -104,6 +104,9 @@ cream, shimmer, glitter, flakies, duochrome, multichrome, holo, magnetic, jelly,
 - [ ] Build the image upload flow in the polish submission form (upload to Storage, save path to `polishes.images[]`)
 
 ### 3. Auth configuration
+- [x] Auth callback URL corrected (`/api/auth/callback`)
+- [x] User creation trigger hardened
+- [x] RLS policy fixed to prevent self-role-elevation
 - [ ] In Supabase dashboard → Authentication → URL Configuration:
   - Set Site URL to `http://localhost:3000` (dev) or your Vercel URL (prod)
   - Add redirect URLs: `http://localhost:3000/api/auth/callback` and `https://your-domain.vercel.app/api/auth/callback`
@@ -152,6 +155,30 @@ Add the brands you want to track from day one. Some popular ones to consider see
 - [ ] Brand management UI in admin (instead of directing to Supabase dashboard)
 - [ ] Email notifications when a submitted dupe is approved/rejected
 - [ ] Open Graph images for dupe comparison pages (shareable cards)
+
+---
+
+---
+
+## Session 2 — April 14, 2026
+
+### What was completed since Session 1
+- [x] **Looks** — combination recipe feature built (`002_looks_and_trending.sql`, `/looks/[lookId]` route, look.actions with shared slugify utility)
+- [x] **Trending Now** section on homepage
+- [x] **Announcement bar** + dropdown navigation
+- [x] **Light/dark mode toggle** (FOUC-safe)
+- [x] **Search modal** with polish and brand results
+- [x] **Next.js 16 compatibility** — middleware renamed to proxy
+- [x] **Journal wired into CLAUDE.md** so it loads automatically every session
+
+### Still to do (updated priority order)
+1. Run migrations in Supabase SQL Editor (001 + 002)
+2. Seed data — brands + polishes to make the app browsable
+3. Polish submission form for community members (`/polishes/submit`)
+4. Fix `increment_dupe_count` RPC (see item 6 below)
+5. Profile edit page
+6. Supabase Storage setup (buckets + RLS + image upload UI)
+7. Vercel deployment
 
 ---
 
