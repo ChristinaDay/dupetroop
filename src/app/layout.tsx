@@ -4,6 +4,7 @@ import './globals.css'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { createClient } from '@/lib/supabase/server'
 
 const geistSans = Geist({
@@ -52,12 +53,23 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Prevent flash of wrong theme by reading localStorage before first paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t==null&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <Header user={user} username={username} />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <Toaster richColors position="bottom-right" />
+        <ThemeProvider>
+          <Header user={user} username={username} />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <Toaster richColors position="bottom-right" />
+        </ThemeProvider>
       </body>
     </html>
   )

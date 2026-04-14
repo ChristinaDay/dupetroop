@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Menu, X, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { cn } from '@/lib/utils'
 
 const NAV_LINKS = [
@@ -54,6 +55,7 @@ export function Header({ user, username }: HeaderProps) {
 
           {/* Desktop actions */}
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
             {user ? (
               <>
                 <Button asChild size="sm">
@@ -107,6 +109,10 @@ export function Header({ user, username }: HeaderProps) {
               </Link>
             ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-2">
+              <div className="flex items-center justify-between px-3 py-1">
+                <span className="text-sm text-muted-foreground">Theme</span>
+                <ThemeToggle />
+              </div>
               {user ? (
                 <>
                   <Button asChild size="sm">
