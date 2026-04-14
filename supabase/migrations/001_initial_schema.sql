@@ -349,7 +349,9 @@ ALTER TABLE opinion_votes ENABLE ROW LEVEL SECURITY;
 
 -- Profiles
 CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (TRUE);
-CREATE POLICY "profiles_update_own" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "profiles_update_own" ON profiles FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id AND role = (SELECT role FROM profiles WHERE id = auth.uid()));
 
 -- Brands & Collections & Tags: public read, admin/mod write
 CREATE POLICY "brands_select" ON brands FOR SELECT USING (TRUE);
