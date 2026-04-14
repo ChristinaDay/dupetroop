@@ -38,6 +38,25 @@ export function scoreBarColor(score: number | null): string {
   return 'bg-rose-500'
 }
 
+export function colorLabel(color: string): string {
+  const labels: Record<string, string> = {
+    red: 'Red',
+    orange: 'Orange',
+    yellow: 'Yellow',
+    green: 'Green',
+    blue: 'Blue',
+    purple: 'Purple',
+    pink: 'Pink',
+    neutral: 'Neutral',
+    white: 'White',
+    black: 'Black',
+    brown: 'Brown',
+    grey: 'Grey',
+    multicolor: 'Multicolor',
+  }
+  return labels[color] ?? color
+}
+
 export function finishLabel(finish: string): string {
   const labels: Record<string, string> = {
     cream: 'Cream',

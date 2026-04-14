@@ -13,7 +13,18 @@ import {
   CommandSeparator,
 } from '@/components/ui/command'
 import type { SearchResults } from '@/app/api/search/route'
-import { finishLabel } from '@/lib/utils/format'
+import type { FinishCategory, ColorFamily } from '@/lib/types/app.types'
+import { finishLabel, colorLabel } from '@/lib/utils/format'
+
+const FINISH_OPTIONS: FinishCategory[] = [
+  'cream', 'shimmer', 'glitter', 'flakies', 'duochrome',
+  'multichrome', 'holo', 'magnetic', 'jelly', 'tinted', 'matte', 'satin', 'topper',
+]
+
+const COLOR_OPTIONS: ColorFamily[] = [
+  'red', 'orange', 'yellow', 'green', 'blue',
+  'purple', 'pink', 'neutral', 'white', 'black', 'multicolor',
+]
 
 interface SearchModalProps {
   open: boolean
@@ -23,28 +34,40 @@ interface SearchModalProps {
 export function SearchModal({ open, onOpenChange }: SearchModalProps) {
   const router = useRouter()
   const [query, setQuery] = useState('')
+  const [finish, setFinish] = useState<FinishCategory | null>(null)
+  const [color, setColor] = useState<ColorFamily | null>(null)
   const [results, setResults] = useState<SearchResults>({ polishes: [], brands: [] })
   const [isPending, startTransition] = useTransition()
 
-  // Debounced search
+  // Debounced search — fires when query, finish, or color changes
   useEffect(() => {
-    if (query.length < 2) {
+    const hasText = query.length >= 2
+    const hasFilter = finish !== null || color !== null
+
+    if (!hasText && !hasFilter) {
       setResults({ polishes: [], brands: [] })
       return
     }
+
     const id = setTimeout(() => {
       startTransition(async () => {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+        const url = new URL('/api/search', window.location.origin)
+        if (query) url.searchParams.set('q', query)
+        if (finish) url.searchParams.set('finish', finish)
+        if (color) url.searchParams.set('color', color)
+        const res = await fetch(url.toString())
         if (res.ok) setResults(await res.json())
       })
     }, 200)
     return () => clearTimeout(id)
-  }, [query])
+  }, [query, finish, color])
 
   // Reset on close
   useEffect(() => {
     if (!open) {
       setQuery('')
+      setFinish(null)
+      setColor(null)
       setResults({ polishes: [], brands: [] })
     }
   }, [open])
@@ -55,6 +78,8 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
   }, [router, onOpenChange])
 
   const hasResults = results.polishes.length > 0 || results.brands.length > 0
+  const hasFilter = finish !== null || color !== null
+  const showEmpty = (query.length >= 2 || hasFilter) && !isPending && !hasResults
 
   return (
     <CommandDialog
@@ -68,11 +93,48 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
         value={query}
         onValueChange={setQuery}
       />
+
+      {/* Filter chips */}
+      <div className="border-t border-border px-2 py-1.5 space-y-1">
+        <div className="flex gap-1 overflow-x-auto no-scrollbar">
+          {FINISH_OPTIONS.map(f => (
+            <button
+              key={f}
+              onClick={() => setFinish(prev => prev === f ? null : f)}
+              className={[
+                'shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
+                finish === f
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-transparent text-muted-foreground hover:border-foreground hover:text-foreground',
+              ].join(' ')}
+            >
+              {finishLabel(f)}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 overflow-x-auto no-scrollbar">
+          {COLOR_OPTIONS.map(c => (
+            <button
+              key={c}
+              onClick={() => setColor(prev => prev === c ? null : c)}
+              className={[
+                'shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
+                color === c
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-transparent text-muted-foreground hover:border-foreground hover:text-foreground',
+              ].join(' ')}
+            >
+              {colorLabel(c)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <CommandList>
-        {query.length >= 2 && !isPending && !hasResults && (
-          <CommandEmpty>No results for &ldquo;{query}&rdquo;</CommandEmpty>
+        {showEmpty && (
+          <CommandEmpty>No results{query ? ` for "${query}"` : ''}</CommandEmpty>
         )}
-        {query.length >= 2 && isPending && (
+        {(query.length >= 2 || hasFilter) && isPending && (
           <CommandEmpty>Searching…</CommandEmpty>
         )}
         {results.polishes.length > 0 && (

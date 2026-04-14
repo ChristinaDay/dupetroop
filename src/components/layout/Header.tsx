@@ -72,12 +72,12 @@ export function Header({ user, username }: HeaderProps) {
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:border-primary/50 w-44 lg:w-64"
               aria-label="Search"
             >
-              <Search className="h-3.5 w-3.5" />
-              <span>Search</span>
-              <kbd className="ml-1 hidden rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground lg:inline">
+              <Search className="h-3.5 w-3.5 shrink-0" />
+              <span className="flex-1 text-left truncate">Search polishes…</span>
+              <kbd className="hidden rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono shrink-0 lg:inline">
                 ⌘K
               </kbd>
             </button>

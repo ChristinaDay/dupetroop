@@ -7,8 +7,9 @@ import { getFeaturedDupes, getRecentDupes } from '@/lib/queries/dupes'
 import { getPolishes } from '@/lib/queries/polishes'
 import { finishLabel } from '@/lib/utils/format'
 import type { FinishCategory } from '@/lib/types/app.types'
+import { HeroSearch } from '@/components/search/HeroSearch'
 
-const FINISH_ICONS: { finish: FinishCategory; emoji: string }[] = [
+const FINISH_TILES: { finish: FinishCategory; emoji: string }[] = [
   { finish: 'holo', emoji: '🌈' },
   { finish: 'multichrome', emoji: '✨' },
   { finish: 'glitter', emoji: '💎' },
@@ -17,6 +18,20 @@ const FINISH_ICONS: { finish: FinishCategory; emoji: string }[] = [
   { finish: 'cream', emoji: '🍦' },
   { finish: 'shimmer', emoji: '⭐' },
   { finish: 'magnetic', emoji: '🧲' },
+]
+
+const COLOR_FAMILIES: { color: string; hex: string; label: string }[] = [
+  { color: 'red', hex: '#dc2626', label: 'Red' },
+  { color: 'orange', hex: '#ea580c', label: 'Orange' },
+  { color: 'yellow', hex: '#ca8a04', label: 'Yellow' },
+  { color: 'green', hex: '#16a34a', label: 'Green' },
+  { color: 'blue', hex: '#2563eb', label: 'Blue' },
+  { color: 'purple', hex: '#9333ea', label: 'Purple' },
+  { color: 'pink', hex: '#db2777', label: 'Pink' },
+  { color: 'neutral', hex: '#a8a29e', label: 'Neutral' },
+  { color: 'white', hex: '#f5f5f4', label: 'White' },
+  { color: 'black', hex: '#1c1917', label: 'Black' },
+  { color: 'multicolor', hex: 'linear-gradient(135deg, #dc2626 0%, #9333ea 40%, #2563eb 70%, #16a34a 100%)', label: 'Multi' },
 ]
 
 export default async function HomePage() {
@@ -42,10 +57,13 @@ export default async function HomePage() {
               Find your perfect{' '}
               <span className="text-primary">nail polish dupe.</span>
             </h1>
-            <p className="text-lg text-muted-foreground mb-8 max-w-lg">
+            <p className="text-lg text-muted-foreground mb-6 max-w-lg">
               Discover which indie nail polishes are truly similar — rated by the community on
               color, finish, and formula accuracy.
             </p>
+            <div className="mb-6">
+              <HeroSearch />
+            </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="font-bold">
                 <Link href="/dupes">Browse Dupes</Link>
@@ -58,30 +76,60 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Browse by finish */}
+      {/* Browse */}
       <section className="border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">
-            Browse by finish
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {FINISH_ICONS.map(({ finish, emoji }) => (
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+
+          {/* Finish tiles */}
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3">
+              Browse by finish
+            </h2>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {FINISH_TILES.map(({ finish, emoji }) => (
+                <Link
+                  key={finish}
+                  href={`/polishes?finish=${finish}`}
+                  className="shrink-0 flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card w-24 py-4 hover:border-primary hover:text-primary transition-colors"
+                >
+                  <span className="text-2xl leading-none">{emoji}</span>
+                  <span className="text-xs font-semibold">{finishLabel(finish)}</span>
+                </Link>
+              ))}
               <Link
-                key={finish}
-                href={`/polishes?finish=${finish}`}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:border-primary hover:text-primary transition-colors"
+                href="/polishes"
+                className="shrink-0 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card w-24 py-4 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
-                <span>{emoji}</span>
-                {finishLabel(finish)}
+                <span className="text-xl leading-none font-light">→</span>
+                <span className="text-xs font-semibold">All</span>
               </Link>
-            ))}
-            <Link
-              href="/polishes"
-              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:border-primary hover:text-primary transition-colors"
-            >
-              View all →
-            </Link>
+            </div>
           </div>
+
+          {/* Color dots */}
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3">
+              Browse by color
+            </h2>
+            <div className="flex gap-5 overflow-x-auto no-scrollbar pb-1">
+              {COLOR_FAMILIES.map(({ color, hex, label }) => (
+                <Link
+                  key={color}
+                  href={`/polishes?color=${color}`}
+                  className="shrink-0 flex flex-col items-center gap-1.5 group"
+                >
+                  <span
+                    className="h-9 w-9 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-background group-hover:ring-primary transition-all shadow-sm border border-border/40"
+                    style={{ background: hex }}
+                  />
+                  <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                    {label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
         </div>
       </section>
 
