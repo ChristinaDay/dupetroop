@@ -230,6 +230,13 @@ export function Header({ user, username }: HeaderProps) {
                           >
                             Recently Added
                           </Link>
+                          <Link
+                            href="/looks"
+                            onClick={() => setActiveDropdown(null)}
+                            className="flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                          >
+                            Combination Recipes
+                          </Link>
                           <div className="my-1 border-t border-border" />
                           <Link
                             href="/dupes/submit"

@@ -14,6 +14,7 @@ export function Footer() {
             <Link href="/polishes" className="hover:text-foreground transition-colors">Polishes</Link>
             <Link href="/dupes" className="hover:text-foreground transition-colors">Dupes</Link>
             <Link href="/brands" className="hover:text-foreground transition-colors">Brands</Link>
+            <Link href="/looks" className="hover:text-foreground transition-colors">Recipes</Link>
             <Link href="/dupes/submit" className="hover:text-foreground transition-colors">Submit a Dupe</Link>
           </nav>
           <p className="text-xs text-muted-foreground">

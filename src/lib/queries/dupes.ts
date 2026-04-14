@@ -113,6 +113,21 @@ export async function getPendingDupes(): Promise<DupeWithPolishes[]> {
   return (data as unknown as DupeWithPolishes[]) ?? []
 }
 
+export async function getTrendingDupes(limit = 6): Promise<DupeWithPolishes[]> {
+  const supabase = await createClient()
+  // is_featured added via migration 002 — cast until types are regenerated
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
+    .from('dupes')
+    .select(DUPE_SELECT)
+    .eq('status', 'approved')
+    .eq('is_featured', true)
+    .order('featured_rank', { ascending: true, nullsFirst: false })
+    .limit(limit)
+
+  return (data as unknown as DupeWithPolishes[]) ?? []
+}
+
 export async function checkDupeExists(
   polishAId: string,
   polishBId: string

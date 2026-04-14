@@ -44,6 +44,47 @@ export type PolishWithDupes = PolishWithBrand & {
   dupes_as_b: DupeWithPolishes[]
 }
 
+// Look (combination recipe) types
+// Note: Look/LookComponent are not in database.types.ts yet (added via migration 002).
+// These are manually typed until Supabase types are regenerated.
+
+export type LookSourceType = 'reddit' | 'instagram' | 'tiktok' | 'admin'
+export type LookStatus = 'pending' | 'approved' | 'rejected'
+export type ComponentRole = 'base' | 'topper' | 'glitter_topper' | 'accent' | 'other'
+
+export type Look = {
+  id: string
+  target_polish_id: string | null
+  name: string
+  description: string | null
+  source_url: string | null
+  source_type: LookSourceType
+  is_featured: boolean
+  featured_rank: number | null
+  opinion_count: number
+  created_by: string | null
+  status: LookStatus
+  created_at: string
+  updated_at: string
+}
+
+export type LookComponent = {
+  id: string
+  look_id: string
+  polish_id: string
+  step_order: number
+  role: ComponentRole
+  notes: string | null
+  // Joined fields (populated by query)
+  polish: PolishWithBrand
+  best_dupe: PolishWithBrand | null  // cheapest approved 1:1 dupe of this component
+}
+
+export type LookWithComponents = Look & {
+  target_polish: PolishWithBrand | null
+  components: LookComponent[]
+}
+
 // Filter types for browse pages
 
 export type PolishFilters = {

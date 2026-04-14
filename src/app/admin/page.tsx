@@ -1,11 +1,15 @@
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { getPendingDupes } from '@/lib/queries/dupes'
+import { getPendingLooks } from '@/lib/queries/looks'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
-  const pendingDupes = await getPendingDupes().catch(() => [])
+  const [pendingDupes, pendingLooks] = await Promise.all([
+    getPendingDupes().catch(() => []),
+    getPendingLooks().catch(() => []),
+  ])
 
   const { count: pendingPolishes } = await supabase
     .from('polishes')
@@ -27,6 +31,14 @@ export default async function AdminDashboard() {
           <CardContent className="p-6">
             <p className="text-4xl font-black text-primary">{pendingPolishes ?? 0}</p>
             <p className="text-sm font-semibold mt-1">Pending polishes</p>
+          </CardContent>
+        </Card>
+      </Link>
+      <Link href="/admin/looks">
+        <Card className="hover:border-primary transition-colors cursor-pointer">
+          <CardContent className="p-6">
+            <p className="text-4xl font-black text-primary">{pendingLooks.length}</p>
+            <p className="text-sm font-semibold mt-1">Pending recipes</p>
           </CardContent>
         </Card>
       </Link>

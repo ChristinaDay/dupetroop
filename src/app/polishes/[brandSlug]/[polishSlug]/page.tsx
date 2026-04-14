@@ -4,9 +4,11 @@ import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 import { getPolishBySlug } from '@/lib/queries/polishes'
 import { getDupesForPolish } from '@/lib/queries/dupes'
+import { getLooksForPolish } from '@/lib/queries/looks'
 import { PolishSwatch } from '@/components/polish/PolishSwatch'
 import { PolishBadge } from '@/components/polish/PolishBadge'
 import { DupeCard } from '@/components/dupe/DupeCard'
+import { LookCard } from '@/components/look/LookCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/utils/format'
@@ -27,14 +29,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PolishDetailPage({ params }: PageProps) {
   const { brandSlug, polishSlug } = await params
-  const [polish, dupes] = await Promise.all([
-    getPolishBySlug(brandSlug, polishSlug),
-    getPolishBySlug(brandSlug, polishSlug).then(p =>
-      p ? getDupesForPolish(p.id) : []
-    ),
-  ])
-
+  const polish = await getPolishBySlug(brandSlug, polishSlug)
   if (!polish) notFound()
+
+  const [dupes, looks] = await Promise.all([
+    getDupesForPolish(polish.id),
+    getLooksForPolish(polish.id),
+  ])
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10">
@@ -142,6 +143,28 @@ export default async function PolishDetailPage({ params }: PageProps) {
           </div>
         )}
       </div>
+
+      {/* Combination Recipes */}
+      {looks.length > 0 && (
+        <div className="mt-12">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight">Combination Recipes</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Community-discovered ways to achieve or replicate this look
+              </p>
+            </div>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/looks">Browse all</Link>
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {looks.map(look => (
+              <LookCard key={look.id} look={look} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
