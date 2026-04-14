@@ -33,7 +33,7 @@ export function AddToStashButton({ polishId, stashItemId: initialStashItemId, cl
       size="sm"
       onClick={handleToggle}
       disabled={isPending}
-      className={className}
+      className={`cursor-pointer ${className ?? ''}`}
     >
       {isPending ? '...' : inStash ? '✓ In your stash' : '+ Add to stash'}
     </Button>

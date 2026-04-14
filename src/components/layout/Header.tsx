@@ -283,6 +283,15 @@ export function Header({ user, username }: HeaderProps) {
                       <Link href="/dupes/submit">+ Submit Dupe</Link>
                     </Button>
                     <Link
+                      href="/stash"
+                      className={cn(
+                        'text-sm font-medium transition-colors hover:text-primary',
+                        pathname.startsWith('/stash') ? 'text-primary' : 'text-muted-foreground'
+                      )}
+                    >
+                      My Stash
+                    </Link>
+                    <Link
                       href="/profile"
                       className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                     >
@@ -377,12 +386,20 @@ export function Header({ user, username }: HeaderProps) {
                   <ThemeToggle />
                 </div>
                 {user ? (
-                  <Link
-                    href="/profile"
-                    className="px-2 py-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {username ?? 'Profile'}
-                  </Link>
+                  <>
+                    <Link
+                      href="/stash"
+                      className="px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      My Stash
+                    </Link>
+                    <Link
+                      href="/profile"
+                      className="px-2 py-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {username ?? 'Profile'}
+                    </Link>
+                  </>
                 ) : (
                   <div className="flex gap-2">
                     <Button asChild variant="outline" size="sm" className="flex-1">
