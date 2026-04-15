@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X, Sparkles, Search, ChevronDown } from 'lucide-react'
+import { Menu, X, Sparkles, Search, ChevronDown, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SearchModal } from '@/components/search/SearchModal'
@@ -299,12 +299,12 @@ export function Header({ user, username }: HeaderProps) {
                     >
                       <button
                         className={cn(
-                          'flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary',
+                          'flex items-center gap-1 transition-colors hover:text-primary',
                           activeDropdown === 'user' ? 'text-primary' : 'text-muted-foreground'
                         )}
                       >
-                        {username ?? 'Profile'}
-                        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-150', activeDropdown === 'user' && 'rotate-180')} />
+                        <User className="h-5 w-5" />
+                        <ChevronDown className={cn('h-3 w-3 transition-transform duration-150', activeDropdown === 'user' && 'rotate-180')} />
                       </button>
                       {activeDropdown === 'user' && (
                         <div
