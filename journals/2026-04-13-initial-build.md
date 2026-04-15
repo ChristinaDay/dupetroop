@@ -172,13 +172,16 @@ Add the brands you want to track from day one. Some popular ones to consider see
 - [x] **Journal wired into CLAUDE.md** so it loads automatically every session
 
 ### Still to do (updated priority order)
-1. Run migrations in Supabase SQL Editor (001 + 002)
-2. Seed data — brands + polishes to make the app browsable
-3. Polish submission form for community members (`/polishes/submit`)
-4. Fix `increment_dupe_count` RPC (see item 6 below)
-5. Profile edit page
-6. Supabase Storage setup (buckets + RLS + image upload UI)
-7. Vercel deployment
+1. ~~Run migrations in Supabase SQL Editor (001 + 002)~~ ✓ done
+2. ~~Seed data~~ ✓ done (scripts/seed.js — 14 brands, 37 polishes, 11 dupes)
+3. [x] Stash feature (migration 003, /stash page, AddToStashButton, CSV import/export, Look stash awareness)
+4. **Nav redesign** — Looks promoted to top-level first item; Brands folded into Polishes dropdown; My Stash surfaces in main nav for logged-in users; Dupes dropdown simplified
+5. Image backfill — Makeup API for mainstream brands, brand site scraping for indie brands
+6. Polish submission form for community members (`/polishes/submit`)
+7. Fix `increment_dupe_count` RPC (see item 6 below)
+8. Profile edit page
+9. Supabase Storage setup (buckets + RLS + image upload UI)
+10. Vercel deployment
 
 ---
 
