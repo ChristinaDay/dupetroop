@@ -282,21 +282,46 @@ export function Header({ user, username }: HeaderProps) {
                     <Button asChild size="sm">
                       <Link href="/dupes/submit">+ Submit Dupe</Link>
                     </Button>
-                    <Link
-                      href="/stash"
-                      className={cn(
-                        'text-sm font-medium transition-colors hover:text-primary',
-                        pathname.startsWith('/stash') ? 'text-primary' : 'text-muted-foreground'
+                    {/* User dropdown */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => openDropdown('user')}
+                      onMouseLeave={scheduleClose}
+                    >
+                      <button
+                        className={cn(
+                          'flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary',
+                          activeDropdown === 'user' ? 'text-primary' : 'text-muted-foreground'
+                        )}
+                      >
+                        {username ?? 'Profile'}
+                        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-150', activeDropdown === 'user' && 'rotate-180')} />
+                      </button>
+                      {activeDropdown === 'user' && (
+                        <div
+                          className="absolute top-full right-0"
+                          onMouseEnter={() => openDropdown('user')}
+                          onMouseLeave={scheduleClose}
+                        >
+                          <div className="mt-2 w-44 rounded-xl border border-border bg-popover shadow-lg p-1.5">
+                            <Link
+                              href="/stash"
+                              onClick={() => setActiveDropdown(null)}
+                              className="flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                            >
+                              My Stash
+                            </Link>
+                            <Link
+                              href="/profile"
+                              onClick={() => setActiveDropdown(null)}
+                              className="flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                            >
+                              Profile
+                            </Link>
+                          </div>
+                        </div>
                       )}
-                    >
-                      My Stash
-                    </Link>
-                    <Link
-                      href="/profile"
-                      className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {username ?? 'Profile'}
-                    </Link>
+                    </div>
                   </>
                 ) : (
                   <>
