@@ -285,7 +285,6 @@ export function Header({ user, username }: HeaderProps) {
                 >
                   <Search className="h-4 w-4" />
                 </button>
-                <ThemeToggle />
                 {user ? (
                   <>
                     <Button asChild size="sm">
@@ -327,6 +326,11 @@ export function Header({ user, username }: HeaderProps) {
                             >
                               Profile
                             </Link>
+                            <div className="my-1 border-t border-border" />
+                            <div className="flex items-center justify-between px-3 py-2">
+                              <span className="text-sm font-medium">Theme</span>
+                              <ThemeToggle />
+                            </div>
                           </div>
                         </div>
                       )}
@@ -334,6 +338,7 @@ export function Header({ user, username }: HeaderProps) {
                   </>
                 ) : (
                   <>
+                    <ThemeToggle />
                     <Button asChild variant="ghost" size="sm">
                       <Link href="/login">Log in</Link>
                     </Button>
