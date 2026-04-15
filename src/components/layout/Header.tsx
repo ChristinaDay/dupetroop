@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X, Sparkles, Search, ChevronDown, User } from 'lucide-react'
+import { Menu, X, Sparkles, Search, ChevronDown, User, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SearchModal } from '@/components/search/SearchModal'
@@ -101,6 +101,18 @@ export function Header({ user, username }: HeaderProps) {
               {/* Desktop nav */}
               <nav className="hidden md:flex items-center">
 
+                {/* Looks */}
+                <Link
+                  href="/looks"
+                  className={cn(
+                    'flex items-center gap-1.5 px-4 py-5 text-sm font-medium transition-colors hover:text-primary',
+                    pathname.startsWith('/looks') ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Looks
+                </Link>
+
                 {/* Polishes dropdown */}
                 <div
                   className="relative"
@@ -111,7 +123,7 @@ export function Header({ user, username }: HeaderProps) {
                     href="/polishes"
                     className={cn(
                       'flex items-center gap-1 px-4 py-5 text-sm font-medium transition-colors hover:text-primary',
-                      pathname.startsWith('/polishes') ? 'text-primary' : 'text-muted-foreground'
+                      (pathname.startsWith('/polishes') || pathname.startsWith('/brands')) ? 'text-primary' : 'text-muted-foreground'
                     )}
                   >
                     Polishes
@@ -166,13 +178,22 @@ export function Header({ user, username }: HeaderProps) {
                             </div>
                           </div>
 
-                          <Link
-                            href="/polishes"
-                            onClick={() => setActiveDropdown(null)}
-                            className="mt-3 inline-flex items-center text-xs font-semibold text-primary hover:underline"
-                          >
-                            View all polishes →
-                          </Link>
+                          <div className="mt-3 border-t border-border pt-3 flex items-center justify-between">
+                            <Link
+                              href="/polishes"
+                              onClick={() => setActiveDropdown(null)}
+                              className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+                            >
+                              All polishes →
+                            </Link>
+                            <Link
+                              href="/brands"
+                              onClick={() => setActiveDropdown(null)}
+                              className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-primary transition-colors hover:underline"
+                            >
+                              Browse brands →
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -230,13 +251,6 @@ export function Header({ user, username }: HeaderProps) {
                           >
                             Recently Added
                           </Link>
-                          <Link
-                            href="/looks"
-                            onClick={() => setActiveDropdown(null)}
-                            className="flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
-                          >
-                            Combination Recipes
-                          </Link>
                           <div className="my-1 border-t border-border" />
                           <Link
                             href="/dupes/submit"
@@ -251,16 +265,18 @@ export function Header({ user, username }: HeaderProps) {
                   )}
                 </div>
 
-                {/* Brands */}
-                <Link
-                  href="/brands"
-                  className={cn(
-                    'px-4 py-5 text-sm font-medium transition-colors hover:text-primary',
-                    pathname.startsWith('/brands') ? 'text-primary' : 'text-muted-foreground'
-                  )}
-                >
-                  Brands
-                </Link>
+                {/* My Stash — logged-in only */}
+                {user && (
+                  <Link
+                    href="/stash"
+                    className={cn(
+                      'px-4 py-5 text-sm font-medium transition-colors hover:text-primary',
+                      pathname.startsWith('/stash') ? 'text-primary' : 'text-muted-foreground'
+                    )}
+                  >
+                    My Stash
+                  </Link>
+                )}
               </nav>
 
               {/* Desktop actions */}
@@ -312,13 +328,6 @@ export function Header({ user, username }: HeaderProps) {
                           onMouseLeave={scheduleClose}
                         >
                           <div className="mt-2 w-44 rounded-xl border border-border bg-popover shadow-lg p-1.5">
-                            <Link
-                              href="/stash"
-                              onClick={() => setActiveDropdown(null)}
-                              className="flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
-                            >
-                              My Stash
-                            </Link>
                             <Link
                               href="/profile"
                               onClick={() => setActiveDropdown(null)}
@@ -375,8 +384,19 @@ export function Header({ user, username }: HeaderProps) {
           <div className="md:hidden border-b border-border bg-background">
             <nav className="mx-auto max-w-7xl px-4 pb-5 pt-3 flex flex-col gap-4">
 
-              {/* Polishes */}
+              {/* Looks */}
               <div>
+                <Link
+                  href="/looks"
+                  className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold hover:bg-accent transition-colors"
+                >
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  Looks
+                </Link>
+              </div>
+
+              {/* Polishes */}
+              <div className="border-t border-border pt-3">
                 <p className="mb-1 px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   Polishes
                 </p>
@@ -398,6 +418,12 @@ export function Header({ user, username }: HeaderProps) {
                     </Link>
                   ))}
                 </div>
+                <Link
+                  href="/brands"
+                  className="mt-1 block rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                >
+                  Browse Brands
+                </Link>
               </div>
 
               {/* Dupes */}
@@ -408,11 +434,6 @@ export function Header({ user, username }: HeaderProps) {
                 <Link href="/dupes" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Browse All</Link>
                 <Link href="/dupes?sort=top_rated" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Top Rated</Link>
                 <Link href="/dupes?sort=newest" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Recently Added</Link>
-              </div>
-
-              {/* Brands */}
-              <div className="border-t border-border pt-3">
-                <Link href="/brands" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Brands</Link>
               </div>
 
               {/* Auth + utils */}
@@ -428,7 +449,7 @@ export function Header({ user, username }: HeaderProps) {
                   <>
                     <Link
                       href="/stash"
-                      className="px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                      className="px-2 py-1.5 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
                     >
                       My Stash
                     </Link>
