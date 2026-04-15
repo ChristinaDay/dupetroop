@@ -265,16 +265,25 @@ export function Header({ user, username }: HeaderProps) {
 
               {/* Desktop actions */}
               <div className="hidden md:flex items-center gap-3 shrink-0">
+                {/* Full search bar — lg+ only */}
                 <button
                   onClick={() => setSearchOpen(true)}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:border-primary/50 w-44 lg:w-64"
+                  className="hidden lg:flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:border-primary/50 w-64"
                   aria-label="Search"
                 >
                   <Search className="h-3.5 w-3.5 shrink-0" />
                   <span className="flex-1 text-left truncate">Search polishes…</span>
-                  <kbd className="hidden rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono shrink-0 lg:inline">
+                  <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono shrink-0">
                     ⌘K
                   </kbd>
+                </button>
+                {/* Icon-only search — md only */}
+                <button
+                  onClick={() => setSearchOpen(true)}
+                  className="lg:hidden p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground"
+                  aria-label="Search"
+                >
+                  <Search className="h-4 w-4" />
                 </button>
                 <ThemeToggle />
                 {user ? (
