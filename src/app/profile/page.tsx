@@ -57,6 +57,9 @@ export default async function ProfilePage() {
       </div>
 
       <div className="space-y-3">
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/profile/edit">Edit profile</Link>
+        </Button>
         {profile.role !== 'user' && (
           <Button asChild variant="outline" className="w-full">
             <Link href="/admin">Admin panel</Link>
