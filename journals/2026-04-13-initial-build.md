@@ -342,11 +342,66 @@ Solved the remaining 5 blocked brands by investigating each platform's actual da
 | Different Dimension | 0/2 (holding page — no products online) |
 
 ### Still to do (updated priority order)
-1. Polish submission form for community members (`/polishes/submit`)
-2. Fix `increment_dupe_count` RPC
-3. Profile edit page
-4. Supabase Storage setup (buckets + RLS + image upload UI)
-5. Vercel deployment
+1. ~~Polish submission form for community members (`/polishes/submit`)~~ ✓ done — see Session 6
+2. ~~Fix `increment_dupe_count` RPC~~ ✓ done — see Session 6
+3. ~~Profile edit page~~ ✓ done — see Session 6
+4. ~~Supabase Storage setup (buckets + RLS + image upload UI)~~ ✓ done — see Session 6
+5. ~~Vercel deployment~~ ✓ done — auto-deploys on push to main
+
+---
+
+## Session 6 — April 15, 2026
+
+### What was completed
+
+#### Lazy polish stub creation in dupe submission
+
+When a user searches for a polish on `/dupes/submit` and gets no results, they can now create a stub inline without leaving the form. Clicking "Add '[query]' as a new polish" opens a mini form (name pre-filled, brand dropdown, finish select). On submit it calls the existing `submitPolish` action (`is_verified: false`) and auto-selects the new polish in the dupe form. Both the stub and the dupe land in the admin review queue together. A "pending review" label appears on the selected polish card so the user knows what to expect.
+
+#### Polish submission form (`/polishes/submit`)
+
+Full community submission form at `/polishes/submit`:
+- Brand (select from DB), name, finish category, color family
+- Hex color inputs (primary + secondary/duochrome) with live swatch preview
+- Swatch image upload (drag-and-drop, see below)
+- Price, product URL, description, limited edition flag
+- "+ Submit polish" button added to the `/polishes` browse page header
+
+#### Supabase Storage + ImageUpload component
+
+`supabase/migrations/004_storage.sql` — creates two public buckets:
+- `polish-images` — 5 MB limit, JPEG/PNG/WebP/GIF; authenticated users can upload, owners can delete their own files
+- `avatars` — 2 MB limit, JPEG/PNG/WebP; users can only manage their own folder
+
+`src/components/ui/ImageUpload.tsx` — reusable drag-and-drop upload component. Uploads immediately to Supabase Storage on file select, shows preview with remove button, validates file type and size client-side. Used by both the polish submission form and profile edit.
+
+#### Fixed `increment_dupe_count` RPC
+
+`supabase/migrations/005_increment_dupe_count.sql` — adds the missing Postgres function called by `approveDupe()`. Uses `SECURITY DEFINER` and an atomic `UPDATE` to avoid race conditions on `dupe_count`.
+
+#### Profile edit page (`/profile/edit`)
+
+- Display name, username, bio, avatar upload
+- Username sanitized client-side (lowercase, alphanumeric + underscore), validated for uniqueness server-side
+- Avatar upload reuses `ImageUpload` with the `avatars` bucket
+- "Edit profile" button added to `/profile`
+
+#### Vercel deployment
+
+App auto-deploys to production on every push to `main`. Required one-time setup:
+- Env vars in Vercel project settings (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`)
+- Supabase Auth → URL Configuration updated with production domain and `/api/auth/callback` redirect URL
+
+### Still to do (nice-to-haves)
+- [ ] Profile page for other users (`/profile/[username]`)
+- [ ] "Report" button on opinions for moderation
+- [ ] Search page (polishes + dupes combined results)
+- [ ] Brand management UI in admin
+- [ ] Email notifications when a submitted dupe is approved/rejected
+- [ ] Open Graph images for dupe comparison pages
+- [ ] Admin brand sync tool (trigger full catalog import per brand)
+- [ ] Girly Bits + Wildflower Lacquer brands + polishes (missing from seed entirely)
+- [ ] Supernatural + Pahlish + Sally Hansen polishes (brands seeded, no polishes)
 
 ---
 
