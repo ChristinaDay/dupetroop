@@ -56,15 +56,6 @@ export function DupeCard({ dupe }: { dupe: DupeWithPolishes }) {
           )}
         </div>
 
-        {/* Score pill — centered on the dividing line */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className={cn(
-            'rounded-full px-2.5 py-1 text-xs font-black shadow-md',
-            scorePill(dupe.avg_overall)
-          )}>
-            {dupe.avg_overall !== null ? formatScore(dupe.avg_overall) : '—'}
-          </span>
-        </div>
       </div>
 
       {/* Polish names */}
@@ -79,10 +70,15 @@ export function DupeCard({ dupe }: { dupe: DupeWithPolishes }) {
         </div>
       </div>
 
-      {/* Opinion count */}
-      <p className="px-3 pb-3 text-[10px] text-muted-foreground text-center -mt-1">
-        {dupe.opinion_count} {dupe.opinion_count === 1 ? 'opinion' : 'opinions'}
-      </p>
+      {/* Score + opinion count */}
+      <div className="px-3 pb-3 -mt-1 flex items-center justify-between">
+        <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-black', scorePill(dupe.avg_overall))}>
+          {dupe.avg_overall !== null ? formatScore(dupe.avg_overall) : '—'}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {dupe.opinion_count} {dupe.opinion_count === 1 ? 'opinion' : 'opinions'}
+        </span>
+      </div>
     </Link>
   )
 }
