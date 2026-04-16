@@ -4,12 +4,12 @@ import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 import { getPolishBySlug, getPolishRatings } from '@/lib/queries/polishes'
 import { getDupesForPolish } from '@/lib/queries/dupes'
-import { getLooksForPolish } from '@/lib/queries/looks'
+import { getLooksWithComponentsForPolish } from '@/lib/queries/looks'
 import { createClient } from '@/lib/supabase/server'
 import { PolishSwatch } from '@/components/polish/PolishSwatch'
 import { PolishBadge } from '@/components/polish/PolishBadge'
 import { DupeCard } from '@/components/dupe/DupeCard'
-import { LookCard } from '@/components/look/LookCard'
+import { RecipeCard } from '@/components/look/RecipeCard'
 import { AddToStashButton } from '@/components/stash/AddToStashButton'
 import { InlinePolishRating } from '@/components/stash/InlinePolishRating'
 import { Badge } from '@/components/ui/badge'
@@ -62,7 +62,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
 
   const [dupes, looks, ratings] = await Promise.all([
     getDupesForPolish(polish.id),
-    getLooksForPolish(polish.id),
+    getLooksWithComponentsForPolish(polish.id),
     getPolishRatings(polish.id),
   ])
 
@@ -272,7 +272,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
           {looks.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {looks.map(look => (
-                <LookCard key={look.id} look={look} />
+                <RecipeCard key={look.id} look={look} />
               ))}
             </div>
           ) : (

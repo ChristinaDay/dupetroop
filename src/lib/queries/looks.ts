@@ -57,6 +57,21 @@ export async function getLooks(limit = 20, offset = 0): Promise<LookCard[]> {
   return (data as unknown as LookCard[]) ?? []
 }
 
+export type ComponentWithAlternatives = {
+  id: string
+  look_id: string
+  polish_id: string
+  step_order: number
+  role: LookComponent['role']
+  notes: string | null
+  polish: PolishWithBrand
+  alternatives: PolishWithBrand[]
+}
+
+export type LookWithFullComponents = LookCard & {
+  components: ComponentWithAlternatives[]
+}
+
 export async function getLooksForPolish(polishId: string): Promise<LookCard[]> {
   const supabase = await createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,6 +115,115 @@ export async function getLooksForPolish(polishId: string): Promise<LookCard[]> {
     }
   }
   return merged
+}
+
+export async function getLooksWithComponentsForPolish(
+  polishId: string
+): Promise<LookWithFullComponents[]> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  // 1. Get all looks targeting this polish with their components
+  const { data: asTarget } = await db
+    .from('looks')
+    .select(`${LOOK_SELECT}, look_components(*, polish:polishes(${POLISH_SELECT}))`)
+    .eq('status', 'approved')
+    .eq('target_polish_id', polishId)
+    .order('is_featured', { ascending: false })
+    .limit(20)
+
+  // 2. Looks where this polish is a component
+  const { data: componentRows } = await db
+    .from('look_components')
+    .select('look_id')
+    .eq('polish_id', polishId)
+
+  let asComponent: typeof asTarget = []
+  if (componentRows?.length) {
+    const lookIds = componentRows.map((r: { look_id: string }) => r.look_id)
+    const { data } = await db
+      .from('looks')
+      .select(`${LOOK_SELECT}, look_components(*, polish:polishes(${POLISH_SELECT}))`)
+      .eq('status', 'approved')
+      .in('id', lookIds)
+      .order('is_featured', { ascending: false })
+      .limit(20)
+    asComponent = data ?? []
+  }
+
+  // Merge & deduplicate
+  const seen = new Set<string>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawLooks: any[] = []
+  for (const look of [...(asTarget ?? []), ...(asComponent ?? [])]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!seen.has((look as any).id)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      seen.add((look as any).id)
+      rawLooks.push(look)
+    }
+  }
+
+  if (!rawLooks.length) return []
+
+  // 3. Collect all unique component polish IDs across all looks
+  const allPolishIds = new Set<string>()
+  for (const look of rawLooks) {
+    for (const comp of look.look_components ?? []) {
+      allPolishIds.add(comp.polish_id)
+    }
+  }
+
+  // 4. Batch-fetch all approved dupes for those polishes
+  const { data: dupeRows } = await db
+    .from('dupes')
+    .select(`
+      polish_a_id,
+      polish_b_id,
+      polish_a:polishes!polish_a_id(${POLISH_SELECT}),
+      polish_b:polishes!polish_b_id(${POLISH_SELECT})
+    `)
+    .eq('status', 'approved')
+    .or(
+      [...allPolishIds].map(id => `polish_a_id.eq.${id},polish_b_id.eq.${id}`).join(',')
+    )
+
+  // Build a map: polish_id → all alternative polishes
+  const altMap = new Map<string, PolishWithBrand[]>()
+  for (const row of dupeRows ?? []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = row as any
+    const aId = r.polish_a_id
+    const bId = r.polish_b_id
+    if (!altMap.has(aId)) altMap.set(aId, [])
+    if (!altMap.has(bId)) altMap.set(bId, [])
+    altMap.get(aId)!.push(r.polish_b as PolishWithBrand)
+    altMap.get(bId)!.push(r.polish_a as PolishWithBrand)
+  }
+
+  // 5. Assemble final shape
+  return rawLooks.map(look => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const comps: ComponentWithAlternatives[] = ((look.look_components ?? []) as any[])
+      .sort((a, b) => a.step_order - b.step_order)
+      .map(comp => ({
+        id: comp.id,
+        look_id: comp.look_id,
+        polish_id: comp.polish_id,
+        step_order: comp.step_order,
+        role: comp.role as LookComponent['role'],
+        notes: comp.notes,
+        polish: comp.polish as PolishWithBrand,
+        alternatives: altMap.get(comp.polish_id) ?? [],
+      }))
+
+    return {
+      ...look,
+      target_polish: look.target_polish ?? null,
+      components: comps,
+    } as LookWithFullComponents
+  })
 }
 
 export async function getLookById(id: string): Promise<LookWithComponents | null> {
