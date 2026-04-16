@@ -30,7 +30,7 @@ export function PolishSwatch({
         src={imageUrl}
         alt="Polish swatch"
         className={cn(
-          'rounded-full object-cover ring-2 ring-border shadow-sm',
+          'rounded-full object-cover ring-2 ring-border shadow-sm shrink-0',
           sizeClasses[size],
           className
         )}
