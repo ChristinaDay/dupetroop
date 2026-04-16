@@ -7,7 +7,7 @@
  * polish_external_ratings table.
  *
  * Usage:
- *   node scripts/backfill-ratings.js              # all polishes with product_url
+ *   node scripts/backfill-ratings.js              # all brands
  *   node scripts/backfill-ratings.js --brand mooncat
  *   node scripts/backfill-ratings.js --dry-run
  */
@@ -25,26 +25,51 @@ const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')
 const BRAND_FILTER = args.includes('--brand') ? args[args.indexOf('--brand') + 1] : null
 
-// Maps brand slug → { sourceKey, sourceLabel } for labeling in the UI
-const BRAND_SOURCE_MAP = {
-  'holo-taco':       { key: 'holotaco',    label: 'Holo Taco' },
-  'mooncat':         { key: 'mooncat',     label: 'Mooncat' },
-  'cirque-colors':   { key: 'cirque',      label: 'Cirque Colors' },
-  'rogue-lacquer':   { key: 'rogue',       label: 'Rogue Lacquer' },
-  'opi':             { key: 'opi',         label: 'OPI' },
-  'kbshimmer':       { key: 'kbshimmer',   label: 'KBShimmer' },
-  'ilnp':            { key: 'ilnp',        label: 'ILNP' },
-  'essie':           { key: 'essie',       label: 'Essie' },
-  'zoya':            { key: 'zoya',        label: 'Zoya' },
-  'glisten-glow':    { key: 'glistenglow', label: 'Glisten & Glow' },
+// Brand config: how to build a product URL from a polish slug
+const BRAND_CONFIG = {
+  'holo-taco': {
+    key: 'holotaco',
+    label: 'Holo Taco',
+    buildUrl: (slug) => `https://holotaco.com/products/${slug}`,
+  },
+  'mooncat': {
+    key: 'mooncat',
+    label: 'Mooncat',
+    buildUrl: (slug) => `https://mooncat.com/products/${slug}`,
+  },
+  'cirque-colors': {
+    key: 'cirque',
+    label: 'Cirque Colors',
+    buildUrl: (slug) => `https://cirquecolors.com/products/${slug}`,
+  },
+  'rogue-lacquer': {
+    key: 'rogue',
+    label: 'Rogue Lacquer',
+    buildUrl: (slug) => `https://roguelacquer.com/products/${slug}`,
+  },
+  'opi': {
+    key: 'opi',
+    label: 'OPI',
+    buildUrl: (slug) => `https://www.opi.com/products/nail-lacquer-${slug}`,
+  },
+  'ilnp': {
+    key: 'ilnp',
+    label: 'ILNP',
+    buildUrl: (slug) => `https://ilnp.com/products/${slug}`,
+  },
+  'glisten-glow': {
+    key: 'glistenglow',
+    label: 'Glisten & Glow',
+    buildUrl: (slug) => `https://www.glistenandglow.com/products/${slug}`,
+  },
 }
 
 async function fetchJsonLdRating(url) {
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; DupeTroop/1.0)',
-        'Accept': 'text/html',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
       },
       signal: AbortSignal.timeout(10000),
     })
@@ -52,23 +77,58 @@ async function fetchJsonLdRating(url) {
 
     const html = await res.text()
 
-    // Extract all JSON-LD blocks
-    const jsonLdMatches = html.matchAll(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)
+    // Try JSON-LD structured data first (most reliable)
+    const jsonLdMatches = [...html.matchAll(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)]
     for (const match of jsonLdMatches) {
       try {
         const data = JSON.parse(match[1])
         const items = Array.isArray(data) ? data : [data]
         for (const item of items) {
-          const rating = item.aggregateRating ?? item['@graph']?.find?.(n => n.aggregateRating)?.aggregateRating
-          if (rating?.ratingValue) {
+          // Direct aggregateRating
+          if (item.aggregateRating?.ratingValue) {
             return {
-              rating: parseFloat(rating.ratingValue),
-              reviewCount: parseInt(rating.reviewCount ?? rating.ratingCount ?? 0) || null,
+              rating: parseFloat(item.aggregateRating.ratingValue),
+              reviewCount: parseInt(item.aggregateRating.reviewCount ?? item.aggregateRating.ratingCount ?? 0) || null,
+            }
+          }
+          // Nested in @graph
+          const graph = item['@graph']
+          if (Array.isArray(graph)) {
+            const node = graph.find(n => n.aggregateRating?.ratingValue)
+            if (node) {
+              return {
+                rating: parseFloat(node.aggregateRating.ratingValue),
+                reviewCount: parseInt(node.aggregateRating.reviewCount ?? 0) || null,
+              }
             }
           }
         }
       } catch { /* malformed JSON-LD, skip */ }
     }
+
+    // Fallback: microdata itemprop (Stamped.io, native Shopify reviews, etc.)
+    const ratingMeta = html.match(/itemprop=['"]ratingValue['"]\s+content=['"](\d[\d.]*)['"]/i)
+      || html.match(/content=['"](\d[\d.]*)['"][^>]*itemprop=['"]ratingValue['"]/i)
+    const countMeta = html.match(/itemprop=['"]reviewCount['"]\s+content=['"](\d+)['"]/i)
+      || html.match(/content=['"](\d+)['"][^>]*itemprop=['"]reviewCount['"]/i)
+    if (ratingMeta) {
+      return {
+        rating: parseFloat(ratingMeta[1]),
+        reviewCount: countMeta ? parseInt(countMeta[1]) : null,
+      }
+    }
+
+    // Fallback: Stamped badge data attribute
+    const stampedMatch = html.match(/data-rating="([\d.]+)"[^>]*data-lang="en"/)
+      || html.match(/class="stamped-main-badge"[^>]*data-rating="([\d.]+)"/)
+    const stampedCount = html.match(/data-count="(\d+)".*?stamped-badge-caption/)
+    if (stampedMatch) {
+      return {
+        rating: parseFloat(stampedMatch[1]),
+        reviewCount: stampedCount ? parseInt(stampedCount[1]) : null,
+      }
+    }
+
     return null
   } catch {
     return null
@@ -76,37 +136,43 @@ async function fetchJsonLdRating(url) {
 }
 
 async function run() {
-  // Fetch all polishes with a product_url
-  let query = supabase
-    .from('polishes')
-    .select('id, name, product_url, brand:brands(slug, name)')
-    .not('product_url', 'is', null)
+  const brandSlugs = BRAND_FILTER ? [BRAND_FILTER] : Object.keys(BRAND_CONFIG)
 
-  if (BRAND_FILTER) {
-    query = query.eq('brands.slug', BRAND_FILTER)
+  // Fetch brands
+  const { data: brands } = await supabase
+    .from('brands')
+    .select('id, slug')
+    .in('slug', brandSlugs)
+
+  if (!brands?.length) {
+    console.log('No matching brands found.')
+    return
   }
 
-  const { data: polishes, error } = await query
-  if (error) throw error
+  const brandIds = brands.map(b => b.id)
+  const brandMap = Object.fromEntries(brands.map(b => [b.id, b.slug]))
 
-  const eligible = polishes.filter(p => p.product_url && p.brand)
-  console.log(`Found ${eligible.length} polishes with product URLs`)
+  // Fetch polishes for those brands
+  const { data: polishes } = await supabase
+    .from('polishes')
+    .select('id, name, slug, brand_id')
+    .in('brand_id', brandIds)
+    .eq('is_verified', true)
+
+  console.log(`Found ${polishes?.length ?? 0} polishes across ${brands.length} brands\n`)
 
   let updated = 0
-  let skipped = 0
   let failed = 0
 
-  for (const polish of eligible) {
-    const brandSlug = polish.brand.slug
-    const source = BRAND_SOURCE_MAP[brandSlug]
-    if (!source) {
-      skipped++
-      continue
-    }
+  for (const polish of polishes ?? []) {
+    const brandSlug = brandMap[polish.brand_id]
+    const config = BRAND_CONFIG[brandSlug]
+    if (!config) continue
 
-    process.stdout.write(`  ${polish.brand.name} — ${polish.name}… `)
+    const url = config.buildUrl(polish.slug)
+    process.stdout.write(`  [${brandSlug}] ${polish.name} (${polish.slug})… `)
 
-    const result = await fetchJsonLdRating(polish.product_url)
+    const result = await fetchJsonLdRating(url)
     if (!result) {
       console.log('no rating found')
       failed++
@@ -116,20 +182,20 @@ async function run() {
     console.log(`${result.rating}/5 (${result.reviewCount ?? '?'} reviews)`)
 
     if (!DRY_RUN) {
-      const { error: upsertError } = await supabase
+      const { error } = await supabase
         .from('polish_external_ratings')
         .upsert({
           polish_id: polish.id,
-          source: source.key,
-          source_label: source.label,
+          source: config.key,
+          source_label: config.label,
           rating: result.rating,
           review_count: result.reviewCount,
-          source_url: polish.product_url,
+          source_url: url,
           fetched_at: new Date().toISOString(),
         }, { onConflict: 'polish_id,source' })
 
-      if (upsertError) {
-        console.error(`    ✗ DB error: ${upsertError.message}`)
+      if (error) {
+        console.error(`    ✗ DB error: ${error.message}`)
         failed++
         continue
       }
@@ -137,10 +203,10 @@ async function run() {
     updated++
 
     // Polite delay between requests
-    await new Promise(r => setTimeout(r, 500))
+    await new Promise(r => setTimeout(r, 600))
   }
 
-  console.log(`\nDone. Updated: ${updated}, Skipped: ${skipped}, Failed: ${failed}${DRY_RUN ? ' (dry run)' : ''}`)
+  console.log(`\nDone. Updated: ${updated}, Failed/not found: ${failed}${DRY_RUN ? ' (dry run — nothing written)' : ''}`)
 }
 
 run().catch(err => { console.error(err); process.exit(1) })
