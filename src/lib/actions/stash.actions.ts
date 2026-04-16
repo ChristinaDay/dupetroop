@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function addToStash(input: {
   polishId: string
+  status?: 'owned' | 'wishlist' | 'bookmarked'
   notes?: string
 }): Promise<{ id: string } | { error: string }> {
   const supabase = await createClient()
@@ -16,7 +17,12 @@ export async function addToStash(input: {
   const db = supabase as any
   const { data, error } = await db
     .from('stash_items')
-    .insert({ user_id: user.id, polish_id: input.polishId, notes: input.notes ?? null })
+    .insert({
+      user_id: user.id,
+      polish_id: input.polishId,
+      status: input.status ?? 'owned',
+      notes: input.notes ?? null,
+    })
     .select('id')
     .single()
 
@@ -27,6 +33,29 @@ export async function addToStash(input: {
 
   revalidatePath('/stash')
   return { id: data.id }
+}
+
+export async function updateStashItemStatus(
+  stashItemId: string,
+  status: 'owned' | 'wishlist' | 'bookmarked'
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'You must be logged in.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+  const { error } = await db
+    .from('stash_items')
+    .update({ status })
+    .eq('id', stashItemId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/stash')
+  return { success: true }
 }
 
 export async function removeFromStash(

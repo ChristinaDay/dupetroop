@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { StashItemWithPolish } from '@/lib/types/app.types'
+import type { StashItemWithPolish, StashSummary } from '@/lib/types/app.types'
 
 const POLISH_SELECT = `*, brand:brands(*), collection:collections(*)`
 
@@ -8,18 +8,48 @@ const STASH_SELECT = `
   polish:polishes(${POLISH_SELECT})
 `
 
-const PAGE_SIZE = 24
-
-export async function getUserStash(
-  userId: string,
-  page = 1
-): Promise<{ items: StashItemWithPolish[]; total: number }> {
+export async function getUserStashSummary(userId: string): Promise<StashSummary> {
   const supabase = await createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
-  const from = (page - 1) * PAGE_SIZE
-  const to = from + PAGE_SIZE - 1
+  const { data, error } = await db
+    .from('stash_items')
+    .select(STASH_SELECT)
+    .eq('user_id', userId)
+    .order('is_favorite', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  const all = (data ?? []) as unknown as StashItemWithPolish[]
+
+  const bucket = (status: 'owned' | 'wishlist' | 'bookmarked') => {
+    const items = all.filter(i => i.status === status)
+    let value = 0
+    let unknownCount = 0
+    for (const item of items) {
+      const price = item.polish.msrp_usd
+      if (price != null) value += price
+      else unknownCount++
+    }
+    return { items, value, unknownCount }
+  }
+
+  return {
+    owned: bucket('owned'),
+    wishlist: bucket('wishlist'),
+    bookmarked: bucket('bookmarked'),
+  }
+}
+
+// Legacy: used by export route and CSV import flow
+export async function getUserStash(
+  userId: string,
+): Promise<{ items: StashItemWithPolish[]; total: number }> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
 
   const { data, count, error } = await db
     .from('stash_items')
@@ -27,7 +57,6 @@ export async function getUserStash(
     .eq('user_id', userId)
     .order('is_favorite', { ascending: false })
     .order('created_at', { ascending: false })
-    .range(from, to)
 
   if (error) throw error
 

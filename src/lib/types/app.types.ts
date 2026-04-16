@@ -98,10 +98,13 @@ export type LookWithComponents = Look & {
 // Note: stash_items is not in database.types.ts yet (added via migration 003).
 // Manually typed until Supabase types are regenerated.
 
+export type StashStatus = 'owned' | 'wishlist' | 'bookmarked'
+
 export type StashItem = {
   id: string
   user_id: string
   polish_id: string
+  status: StashStatus
   notes: string | null
   is_favorite: boolean
   created_at: string
@@ -110,6 +113,12 @@ export type StashItem = {
 
 export type StashItemWithPolish = StashItem & {
   polish: PolishWithBrand
+}
+
+export type StashSummary = {
+  owned: { items: StashItemWithPolish[]; value: number; unknownCount: number }
+  wishlist: { items: StashItemWithPolish[]; value: number; unknownCount: number }
+  bookmarked: { items: StashItemWithPolish[]; value: number; unknownCount: number }
 }
 
 // Filter types for browse pages
