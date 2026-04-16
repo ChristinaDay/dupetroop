@@ -174,14 +174,59 @@ Add the brands you want to track from day one. Some popular ones to consider see
 ### Still to do (updated priority order)
 1. ~~Run migrations in Supabase SQL Editor (001 + 002)~~ ✓ done
 2. ~~Seed data~~ ✓ done (scripts/seed.js — 14 brands, 37 polishes, 11 dupes)
-3. [x] Stash feature (migration 003, /stash page, AddToStashButton, CSV import/export, Look stash awareness)
-4. **Nav redesign** — Looks promoted to top-level first item; Brands folded into Polishes dropdown; My Stash surfaces in main nav for logged-in users; Dupes dropdown simplified
-5. Image backfill — Makeup API for mainstream brands, brand site scraping for indie brands
+3. ~~Stash feature~~ ✓ done (migration 003, /stash page, AddToStashButton, CSV import/export, Look stash awareness)
+4. ~~Nav redesign~~ ✓ done — see Session 3
+5. ~~Image backfill~~ ✓ done — see Session 3
 6. Polish submission form for community members (`/polishes/submit`)
 7. Fix `increment_dupe_count` RPC (see item 6 below)
 8. Profile edit page
 9. Supabase Storage setup (buckets + RLS + image upload UI)
 10. Vercel deployment
+
+---
+
+## Session 3 — April 15, 2026
+
+### What was completed
+
+#### Nav redesign
+Restructured `Header.tsx` around the Looks-first user journey:
+- **Looks** promoted to first nav item with a book icon
+- **Brands** folded into the Polishes dropdown footer row ("Browse brands →")
+- **Dupes dropdown** simplified — "Combination Recipes" removed since Looks is now top-level
+- **My Stash** surfaces inline in the nav bar for logged-in users; removed from the user dropdown
+- Polishes active state now also triggers on `/brands/*` routes
+- Mobile menu updated to match: Looks first, Brands under Polishes, My Stash styled in primary color
+
+#### Image backfill
+Investigated and built a two-stage solution:
+
+**Why the original plan didn't work:**
+- The Makeup API only returns product collections, not individual shades — useless for matching "Bordeaux" or "Lincoln Park After Dark"
+- Many indie brand Shopify stores block the public `.json` API (Cloudflare 403), have taken their sites offline (Different Dimension, Glisten & Glow), or lock the Shopify API (ILNP)
+- The original seed polishes were mostly placeholder names and don't exist in any real store catalog
+
+**What was built — `scripts/backfill-images.js`:**
+- Uses Shopify `/products/{handle}.json` for brands with open APIs
+- Falls back to HTML `og:image` scraping for all others
+- `--dry-run` and `--brand` flags for safe testing
+- `HANDLE_OVERRIDES` map for slug mismatches (e.g. our `supernova` → Mooncat's `im-a-mf-supernova`)
+- Currently writes images for 4 confirmed polishes; picks up more automatically as real slugs are added
+
+**What was built — `scripts/seed-products.js`:**
+- Fetches Holo Taco and Mooncat best-sellers live from their Shopify APIs (images included)
+- Manually curates well-known polishes for KBShimmer, ILNP, Cirque Colors, Glisten & Glow, Rogue Lacquer, OPI, Essie, Zoya
+- Parses Shopify `finish:*` and `color:*` tags to auto-populate `finish_category`, `color_family`, `hex_color`
+- **95 real polishes** upserted; **43 with real product images** (all Holo Taco + Mooncat)
+- Replaces the placeholder seed data with real brand catalog entries
+
+### Still to do (updated priority order)
+1. Polish submission form for community members (`/polishes/submit`)
+2. Fix `increment_dupe_count` RPC
+3. Profile edit page
+4. Supabase Storage setup (buckets + RLS + image upload UI) — needed for community-uploaded swatches
+5. Vercel deployment
+6. Open PR for `feat/image-backfill` branch and merge
 
 ---
 
