@@ -15,6 +15,7 @@ export async function getOpinionsForDupe(
     .from('dupe_opinions')
     .select(OPINION_SELECT)
     .eq('dupe_id', dupeId)
+    .order('owns_both', { ascending: false })
     .order('helpful_votes', { ascending: false })
 
   const opinions = (data as unknown as OpinionWithProfile[]) ?? []
