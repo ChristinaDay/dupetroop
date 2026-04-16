@@ -61,18 +61,18 @@ export default async function HomePage() {
               <span className="text-primary">nail polish dupe.</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-6 max-w-lg">
-              Discover which indie nail polishes are truly similar — rated by the community on
-              color, finish, and formula accuracy.
+              Navigate the matrix of options around a look you want — single-bottle swaps,
+              layering recipes, and what you can make with what you already own.
             </p>
             <div className="mb-6">
               <HeroSearch />
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="font-bold">
-                <Link href="/dupes">Browse Dupes</Link>
+                <Link href="/looks">Browse Looks</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href="/dupes/submit">Submit a Dupe</Link>
+                <Link href="/polishes">Browse Polishes</Link>
               </Button>
             </div>
           </div>
@@ -240,16 +240,16 @@ export default async function HomePage() {
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 text-center">
           <Users className="h-8 w-8 mx-auto mb-4 opacity-80" />
-          <h2 className="text-3xl font-black mb-3">Know your dupes?</h2>
+          <h2 className="text-3xl font-black mb-3">Track what you own.</h2>
           <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">
-            Share your swatches, rate the accuracy, and help the community find the best alternatives.
+            Add polishes to your stash and DupeTroop will tell you which looks you can make right now — and which ones are just one purchase away.
           </p>
           <div className="flex justify-center gap-3">
             <Button asChild variant="secondary" size="lg" className="font-bold">
-              <Link href="/dupes/submit">Submit a dupe</Link>
+              <Link href="/signup">Create a free account</Link>
             </Button>
             <Button asChild size="lg" className="bg-transparent border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10">
-              <Link href="/polishes">Browse polishes</Link>
+              <Link href="/stash">View your stash</Link>
             </Button>
           </div>
         </div>

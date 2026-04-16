@@ -75,12 +75,12 @@ export function Header({ user, username }: HeaderProps) {
 
         {/* Announcement bar */}
         <div className="bg-primary text-primary-foreground text-center py-2 px-4 text-xs font-medium tracking-wide">
-          Community-powered nail polish dupe tracker —{' '}
+          Find dupes, discover recipes, track your stash —{' '}
           <Link
-            href="/dupes/submit"
+            href="/looks"
             className="font-bold underline underline-offset-2 hover:opacity-80 transition-opacity"
           >
-            submit your dupes
+            browse looks
           </Link>
         </div>
 
@@ -251,14 +251,6 @@ export function Header({ user, username }: HeaderProps) {
                           >
                             Recently Added
                           </Link>
-                          <div className="my-1 border-t border-border" />
-                          <Link
-                            href="/dupes/submit"
-                            onClick={() => setActiveDropdown(null)}
-                            className="flex items-center rounded-lg px-3 py-2 text-sm font-bold text-primary hover:bg-accent transition-colors"
-                          >
-                            + Submit a Dupe
-                          </Link>
                         </div>
                       </div>
                     </div>
@@ -303,9 +295,6 @@ export function Header({ user, username }: HeaderProps) {
                 </button>
                 {user ? (
                   <>
-                    <Button asChild size="sm">
-                      <Link href="/dupes/submit">+ Submit Dupe</Link>
-                    </Button>
                     {/* User dropdown */}
                     <div
                       className="relative"
@@ -438,9 +427,6 @@ export function Header({ user, username }: HeaderProps) {
 
               {/* Auth + utils */}
               <div className="border-t border-border pt-3 flex flex-col gap-2">
-                <Button asChild size="sm" className="w-full">
-                  <Link href="/dupes/submit">+ Submit a Dupe</Link>
-                </Button>
                 <div className="flex items-center justify-between px-2 py-1">
                   <span className="text-sm text-muted-foreground">Theme</span>
                   <ThemeToggle />
