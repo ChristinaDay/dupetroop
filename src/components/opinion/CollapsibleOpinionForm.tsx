@@ -22,11 +22,11 @@ export function CollapsibleOpinionForm({ dupeId, existingOpinion }: CollapsibleO
       >
         <div>
           <p className="font-black">
-            {existingOpinion ? 'Your rating' : 'Have you tried both?'}
+            {existingOpinion ? 'Your rating' : 'Rate this dupe'}
           </p>
           {!existingOpinion && (
             <p className="text-sm text-muted-foreground mt-0.5">
-              Share your take on how well this dupe holds up.
+              Tried both? Leave a rating.
             </p>
           )}
           {existingOpinion && (
