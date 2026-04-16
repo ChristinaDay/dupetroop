@@ -23,15 +23,22 @@ export function CollapsibleOpinionForm({ dupeId, existingOpinion }: CollapsibleO
         <div>
           <div className="flex items-center gap-2">
             <p className="font-black">
-              {existingOpinion ? 'Your rating' : 'Rate this dupe'}
+              {existingOpinion ? 'Your rating of this dupe' : 'Rate this dupe'}
             </p>
-            {!existingOpinion && (
-              <div className="flex gap-0.5">
-                {[1,2,3,4,5].map(s => (
-                  <Star key={s} className="h-3.5 w-3.5 fill-transparent stroke-muted-foreground/50" />
-                ))}
-              </div>
-            )}
+            <div className="flex gap-0.5">
+              {(() => {
+                const avg = existingOpinion
+                  ? (existingOpinion.color_accuracy + existingOpinion.finish_accuracy + existingOpinion.formula_accuracy) / 3
+                  : 0
+                const rounded = Math.round(avg)
+                return [1,2,3,4,5].map(s => (
+                  <Star
+                    key={s}
+                    className={`h-3.5 w-3.5 ${s <= rounded ? 'fill-primary stroke-primary' : 'fill-transparent stroke-muted-foreground/50'}`}
+                  />
+                ))
+              })()}
+            </div>
           </div>
           {!existingOpinion && (
             <p className="text-sm text-muted-foreground mt-0.5">
