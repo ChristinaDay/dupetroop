@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { PolishWithBrand, PolishFilters } from '@/lib/types/app.types'
+import type { PolishWithBrand, FeaturedPolish, PolishFilters } from '@/lib/types/app.types'
 
 const POLISH_SELECT = `
   *,
@@ -90,6 +90,21 @@ export async function getPolishBySlug(
   return data as unknown as PolishWithBrand | null
 }
 
+export async function getFeaturedPolishes(limit = 6): Promise<FeaturedPolish[]> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+  const { data } = await db
+    .from('polishes')
+    .select(POLISH_SELECT)
+    .eq('is_verified', true)
+    .eq('is_featured', true)
+    .order('featured_rank', { ascending: true, nullsFirst: false })
+    .limit(limit)
+
+  return (data as unknown as FeaturedPolish[]) ?? []
+}
+
 export async function searchPolishes(q: string): Promise<PolishWithBrand[]> {
   const supabase = await createClient()
   const { data } = await supabase
@@ -101,4 +116,48 @@ export async function searchPolishes(q: string): Promise<PolishWithBrand[]> {
     .limit(10)
 
   return (data as unknown as PolishWithBrand[]) ?? []
+}
+
+export async function getPolishRatings(polishId: string): Promise<{
+  ownerRating: {
+    avg: number
+    avgColor: number | null
+    avgFinish: number | null
+    avgFormula: number | null
+    count: number
+  } | null
+  externalRatings: import('@/lib/types/app.types').ExternalRating[]
+}> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const [polishResult, externalResult] = await Promise.all([
+    db
+      .from('polishes')
+      .select('avg_rating, avg_color_rating, avg_finish_rating, avg_formula_rating, rating_count')
+      .eq('id', polishId)
+      .single(),
+    db
+      .from('polish_external_ratings')
+      .select('*')
+      .eq('polish_id', polishId)
+      .order('review_count', { ascending: false, nullsFirst: false }),
+  ])
+
+  const p = polishResult.data
+  const ownerRating = p?.rating_count > 0 && p?.avg_rating != null
+    ? {
+        avg: Number(p.avg_rating),
+        avgColor: p.avg_color_rating != null ? Number(p.avg_color_rating) : null,
+        avgFinish: p.avg_finish_rating != null ? Number(p.avg_finish_rating) : null,
+        avgFormula: p.avg_formula_rating != null ? Number(p.avg_formula_rating) : null,
+        count: p.rating_count,
+      }
+    : null
+
+  return {
+    ownerRating,
+    externalRatings: externalResult.data ?? [],
+  }
 }

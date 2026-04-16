@@ -200,7 +200,7 @@ export default async function PolishesPage({ searchParams }: PageProps) {
         <div className="flex-1 min-w-0">
           <Suspense fallback={<PolishGridSkeleton />}>
             {polishes.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                 {polishes.map(polish => (
                   <PolishCard key={polish.id} polish={polish} showDupeCount />
                 ))}

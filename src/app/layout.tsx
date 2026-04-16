@@ -40,13 +40,15 @@ export default async function RootLayout({
   const { data: { user } } = await supabase.auth.getUser()
 
   let username: string | null = null
+  let isAdmin = false
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('username')
+      .select('username, role')
       .eq('id', user.id)
       .single()
     username = profile?.username ?? null
+    isAdmin = profile?.role === 'admin'
   }
 
   return (
@@ -65,7 +67,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
-          <Header user={user} username={username} />
+          <Header user={user} username={username} isAdmin={isAdmin} />
           <main className="flex-1">{children}</main>
           <Footer />
           <Toaster richColors position="bottom-right" />

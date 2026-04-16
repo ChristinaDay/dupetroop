@@ -9,10 +9,18 @@ import { PolishBadge } from '@/components/polish/PolishBadge'
 import { addToStash } from '@/lib/actions/stash.actions'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import type { PolishWithBrand } from '@/lib/types/app.types'
+import type { PolishWithBrand, StashStatus } from '@/lib/types/app.types'
+
+const STATUS_OPTIONS: { value: StashStatus; label: string; desc: string }[] = [
+  { value: 'owned', label: 'Owned', desc: 'In my collection' },
+  { value: 'destashed', label: 'Destashed', desc: 'Used up or passed on' },
+  { value: 'wishlist', label: 'Wishlist', desc: 'Want to buy' },
+  { value: 'bookmarked', label: 'Bookmarked', desc: 'Keeping an eye on it' },
+]
 
 export function AddPolishModal() {
   const [open, setOpen] = useState(false)
+  const [status, setStatus] = useState<StashStatus>('owned')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<PolishWithBrand[]>([])
   const [loading, setLoading] = useState(false)
@@ -41,7 +49,7 @@ export function AddPolishModal() {
   const handleSelect = (polish: PolishWithBrand) => {
     setErrorMsg(null)
     startTransition(async () => {
-      const result = await addToStash({ polishId: polish.id })
+      const result = await addToStash({ polishId: polish.id, status })
       if ('error' in result) {
         setErrorMsg(result.error)
       } else {
@@ -55,6 +63,7 @@ export function AddPolishModal() {
 
   const handleClose = () => {
     setOpen(false)
+    setStatus('owned')
     setQuery('')
     setResults([])
     setAdded([])
@@ -82,6 +91,25 @@ export function AddPolishModal() {
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
+
+        {/* Status picker */}
+        <div className="flex gap-1.5">
+          {STATUS_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setStatus(opt.value)}
+              className={`flex-1 rounded-xl border px-2 py-2 text-center transition-colors ${
+                status === opt.value
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              }`}
+            >
+              <p className="text-xs font-bold">{opt.label}</p>
+              <p className="text-[10px] mt-0.5 leading-tight">{opt.desc}</p>
+            </button>
+          ))}
         </div>
 
         {/* Search input */}

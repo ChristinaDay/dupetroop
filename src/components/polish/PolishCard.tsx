@@ -1,8 +1,7 @@
 import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
-import { PolishSwatch } from './PolishSwatch'
 import { PolishBadge } from './PolishBadge'
 import { formatPrice } from '@/lib/utils/format'
+import { swatchStyle } from '@/lib/utils/color'
 import type { PolishWithBrand } from '@/lib/types/app.types'
 
 interface PolishCardProps {
@@ -15,47 +14,69 @@ export function PolishCard({ polish, showDupeCount = false }: PolishCardProps) {
   const primaryImage = polish.images?.[0] ?? null
 
   return (
-    <Card className="group overflow-hidden transition-shadow hover:shadow-md">
-      <CardContent className="p-4">
-        <Link href={href} className="flex items-start gap-3">
-          <PolishSwatch
-            hexColor={polish.hex_color}
-            hexSecondary={polish.hex_secondary}
-            imageUrl={primaryImage}
-            size="lg"
-            className="mt-0.5 flex-shrink-0"
+    <Link
+      href={href}
+      className="group block rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
+    >
+      {/* Image / swatch area */}
+      <div className="aspect-square relative overflow-hidden bg-muted">
+        {primaryImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={primaryImage}
+            alt={polish.name}
+            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground truncate font-medium">
-              {polish.brand.name}
-            </p>
-            <h3 className="font-bold text-sm leading-tight mt-0.5 group-hover:text-primary transition-colors line-clamp-2">
-              {polish.name}
-            </h3>
-            <div className="mt-2 flex flex-wrap gap-1 items-center">
-              <PolishBadge finish={polish.finish_category} />
-              {polish.is_discontinued && (
-                <span className="text-xs text-muted-foreground italic">discontinued</span>
-              )}
-              {polish.is_limited && (
-                <span className="text-xs text-amber-600 font-medium">LE</span>
-              )}
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              {polish.msrp_usd && (
-                <span className="text-xs text-muted-foreground">
-                  {formatPrice(polish.msrp_usd)}
-                </span>
-              )}
-              {showDupeCount && polish.dupe_count > 0 && (
-                <span className="text-xs font-semibold text-primary">
-                  {polish.dupe_count} dupe{polish.dupe_count !== 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
+        ) : (
+          <div
+            className="w-full h-full"
+            style={swatchStyle(polish.hex_color, polish.hex_secondary) as React.CSSProperties}
+          />
+        )}
+
+        {/* Status badges */}
+        {(polish.is_limited || polish.is_discontinued) && (
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {polish.is_limited && (
+              <span className="rounded-full bg-amber-500/90 text-white text-[10px] font-bold px-2 py-0.5 backdrop-blur-sm">
+                LE
+              </span>
+            )}
+            {polish.is_discontinued && (
+              <span className="rounded-full bg-background/80 text-muted-foreground text-[10px] font-medium px-2 py-0.5 backdrop-blur-sm border border-border/50">
+                Discontinued
+              </span>
+            )}
           </div>
-        </Link>
-      </CardContent>
-    </Card>
+        )}
+
+        {/* Dupe count */}
+        {showDupeCount && polish.dupe_count > 0 && (
+          <div className="absolute bottom-2 right-2">
+            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 shadow-sm">
+              {polish.dupe_count} dupe{polish.dupe_count !== 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Text */}
+      <div className="p-3">
+        <p className="text-[11px] font-semibold text-muted-foreground truncate">
+          {polish.brand.name}
+        </p>
+        <h3 className="font-bold text-sm mt-0.5 leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+          {polish.name}
+        </h3>
+        <div className="flex items-center justify-between mt-2">
+          <PolishBadge finish={polish.finish_category} />
+          {polish.msrp_usd && (
+            <span className="text-xs text-muted-foreground">
+              {formatPrice(polish.msrp_usd)}
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
   )
 }

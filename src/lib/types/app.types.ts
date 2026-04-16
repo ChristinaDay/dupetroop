@@ -24,6 +24,15 @@ export type PolishWithBrand = Polish & {
   collection: Collection | null
 }
 
+export type FeaturedSourceType = 'reddit' | 'instagram' | 'tiktok' | 'admin'
+
+export type FeaturedPolish = PolishWithBrand & {
+  is_featured: boolean
+  featured_rank: number | null
+  featured_source_type: FeaturedSourceType | null
+  featured_source_url: string | null
+}
+
 export type DupeWithPolishes = Dupe & {
   polish_a: PolishWithBrand
   polish_b: PolishWithBrand
@@ -89,18 +98,43 @@ export type LookWithComponents = Look & {
 // Note: stash_items is not in database.types.ts yet (added via migration 003).
 // Manually typed until Supabase types are regenerated.
 
+export type StashStatus = 'owned' | 'wishlist' | 'bookmarked' | 'destashed'
+
 export type StashItem = {
   id: string
   user_id: string
   polish_id: string
+  status: StashStatus
+  color_rating: number | null
+  finish_rating: number | null
+  formula_rating: number | null
+  review_notes: string | null
   notes: string | null
   is_favorite: boolean
   created_at: string
   updated_at: string
 }
 
+export type ExternalRating = {
+  id: string
+  polish_id: string
+  source: string
+  source_label: string
+  rating: number
+  review_count: number | null
+  source_url: string | null
+  fetched_at: string
+}
+
 export type StashItemWithPolish = StashItem & {
   polish: PolishWithBrand
+}
+
+export type StashSummary = {
+  owned: { items: StashItemWithPolish[]; value: number; unknownCount: number }
+  wishlist: { items: StashItemWithPolish[]; value: number; unknownCount: number }
+  bookmarked: { items: StashItemWithPolish[]; value: number; unknownCount: number }
+  destashed: { items: StashItemWithPolish[]; value: number; unknownCount: number }
 }
 
 // Filter types for browse pages

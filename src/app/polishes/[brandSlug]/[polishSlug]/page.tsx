@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
-import { getPolishBySlug } from '@/lib/queries/polishes'
+import { getPolishBySlug, getPolishRatings } from '@/lib/queries/polishes'
 import { getDupesForPolish } from '@/lib/queries/dupes'
 import { getLooksForPolish } from '@/lib/queries/looks'
 import { createClient } from '@/lib/supabase/server'
@@ -11,6 +11,7 @@ import { PolishBadge } from '@/components/polish/PolishBadge'
 import { DupeCard } from '@/components/dupe/DupeCard'
 import { LookCard } from '@/components/look/LookCard'
 import { AddToStashButton } from '@/components/stash/AddToStashButton'
+import { InlinePolishRating } from '@/components/stash/InlinePolishRating'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/utils/format'
@@ -39,21 +40,30 @@ export default async function PolishDetailPage({ params }: PageProps) {
 
   // Check if this polish is already in the user's stash
   let stashItemId: string | undefined
+  let stashItemStatus: 'owned' | 'wishlist' | 'bookmarked' | 'destashed' | undefined
+  let stashColorRating: number | null = null
+  let stashFinishRating: number | null = null
+  let stashFormulaRating: number | null = null
   if (user) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     const { data } = await db
       .from('stash_items')
-      .select('id')
+      .select('id, status, color_rating, finish_rating, formula_rating')
       .eq('user_id', user.id)
       .eq('polish_id', polish.id)
       .maybeSingle()
     stashItemId = data?.id
+    stashItemStatus = data?.status
+    stashColorRating = data?.color_rating ?? null
+    stashFinishRating = data?.finish_rating ?? null
+    stashFormulaRating = data?.formula_rating ?? null
   }
 
-  const [dupes, looks] = await Promise.all([
+  const [dupes, looks, ratings] = await Promise.all([
     getDupesForPolish(polish.id),
     getLooksForPolish(polish.id),
+    getPolishRatings(polish.id),
   ])
 
   return (
@@ -71,7 +81,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
 
       {/* Polish header */}
       <div className="flex items-start gap-6 mb-10">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <PolishSwatch
             hexColor={polish.hex_color}
             hexSecondary={polish.hex_secondary}
@@ -111,9 +121,18 @@ export default async function PolishDetailPage({ params }: PageProps) {
               <AddToStashButton
                 polishId={polish.id}
                 stashItemId={stashItemId}
+                stashItemStatus={stashItemStatus}
               />
             )}
           </div>
+          {user && stashItemId && stashItemStatus === 'owned' && (
+            <InlinePolishRating
+              stashItemId={stashItemId}
+              initialColor={stashColorRating}
+              initialFinish={stashFinishRating}
+              initialFormula={stashFormulaRating}
+            />
+          )}
           {polish.finish_notes && (
             <p className="text-sm text-muted-foreground mt-3 italic">{polish.finish_notes}</p>
           )}
@@ -122,6 +141,75 @@ export default async function PolishDetailPage({ params }: PageProps) {
           )}
         </div>
       </div>
+
+      {/* Ratings strip */}
+      {(ratings.ownerRating || ratings.externalRatings.length > 0 || polish.product_url) && (
+        <div className="py-4 border-y border-border mb-8 space-y-3">
+          {ratings.ownerRating && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-black">{ratings.ownerRating.avg.toFixed(1)}</span>
+                <div className="flex gap-0.5">
+                  {[1,2,3,4,5].map(s => (
+                    <svg key={s} className={`h-3 w-3 ${s <= Math.round(ratings.ownerRating!.avg) ? 'fill-primary' : 'fill-muted-foreground/30'}`} viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {ratings.ownerRating.count} DupeTroop {ratings.ownerRating.count === 1 ? 'owner' : 'owners'}
+                </span>
+              </div>
+              {(ratings.ownerRating.avgColor != null || ratings.ownerRating.avgFinish != null || ratings.ownerRating.avgFormula != null) && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 pl-0.5">
+                  {[
+                    { label: 'Color', val: ratings.ownerRating.avgColor },
+                    { label: 'Finish', val: ratings.ownerRating.avgFinish },
+                    { label: 'Formula', val: ratings.ownerRating.avgFormula },
+                  ].map(({ label, val }) => val != null && (
+                    <span key={label} className="text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">{val.toFixed(1)}</span> {label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {ratings.externalRatings.length > 0 && (
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {ratings.externalRatings.map((ext) => (
+            <div key={ext.id} className="flex items-center gap-1.5">
+              <span className="text-sm font-black">{Number(ext.rating).toFixed(1)}</span>
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(s => (
+                  <svg key={s} className={`h-3 w-3 ${s <= Math.round(Number(ext.rating)) ? 'fill-amber-400' : 'fill-muted-foreground/30'}`} viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                ))}
+              </div>
+              {ext.source_url ? (
+                <a href={ext.source_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                  on {ext.source_label}{ext.review_count ? ` (${ext.review_count.toLocaleString()})` : ''}
+                  <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+                </a>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  on {ext.source_label}{ext.review_count ? ` (${ext.review_count.toLocaleString()})` : ''}
+                </span>
+              )}
+            </div>
+          ))}
+            </div>
+          )}
+          {polish.product_url && ratings.externalRatings.length === 0 && (
+            <a
+              href={polish.product_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors w-fit"
+            >
+              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+              on {polish.brand.name}
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Image gallery */}
       {polish.images && polish.images.length > 1 && (

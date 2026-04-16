@@ -11,11 +11,11 @@ export function Footer() {
             <span>Dupe<span className="text-primary">Troop</span></span>
           </Link>
           <nav className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Link href="/looks" className="hover:text-foreground transition-colors">Looks</Link>
             <Link href="/polishes" className="hover:text-foreground transition-colors">Polishes</Link>
             <Link href="/dupes" className="hover:text-foreground transition-colors">Dupes</Link>
             <Link href="/brands" className="hover:text-foreground transition-colors">Brands</Link>
             <Link href="/stash" className="hover:text-foreground transition-colors">My Stash</Link>
+            <Link href="/polishes/submit" className="hover:text-foreground transition-colors">Submit a Polish</Link>
           </nav>
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} DupeTroop. Community-powered.

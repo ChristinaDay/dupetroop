@@ -73,7 +73,7 @@ export default async function BrandPage({ params }: PageProps) {
       </div>
 
       {polishes.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {polishes.map(polish => (
             <PolishCard key={polish.id} polish={polish} showDupeCount />
           ))}
