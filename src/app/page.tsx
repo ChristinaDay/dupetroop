@@ -68,7 +68,7 @@ export default async function HomePage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="font-bold">
-                <Link href="/looks">Browse Looks</Link>
+                <Link href="/dupes">Browse Dupes</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
                 <Link href="/polishes">Browse Polishes</Link>
