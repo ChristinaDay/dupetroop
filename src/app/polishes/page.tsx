@@ -71,9 +71,17 @@ export default async function PolishesPage({ searchParams }: PageProps) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8">
-        <h1 className="text-4xl font-black tracking-tight">Polishes</h1>
-        <p className="text-muted-foreground mt-1">{total.toLocaleString()} polishes in the database</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight">Polishes</h1>
+          <p className="text-muted-foreground mt-1">{total.toLocaleString()} polishes in the database</p>
+        </div>
+        <Link
+          href="/polishes/submit"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          + Submit polish
+        </Link>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">

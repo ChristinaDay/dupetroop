@@ -20,6 +20,7 @@ type PolishInput = {
   isDiscontinued?: boolean
   isLimited?: boolean
   description?: string
+  images?: string[]
 }
 
 export async function submitPolish(
@@ -50,6 +51,7 @@ export async function submitPolish(
       is_discontinued: input.isDiscontinued ?? false,
       is_limited: input.isLimited ?? false,
       description: input.description ?? null,
+      images: input.images ?? [],
       submitted_by: user.id,
       is_verified: false,
     })
