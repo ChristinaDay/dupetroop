@@ -6,6 +6,7 @@ import type { StashStatus } from '@/lib/types/app.types'
 
 const STATUS_OPTIONS: { value: StashStatus; label: string }[] = [
   { value: 'owned', label: 'Owned' },
+  { value: 'destashed', label: 'Destashed' },
   { value: 'wishlist', label: 'Wishlist' },
   { value: 'bookmarked', label: 'Bookmarked' },
 ]

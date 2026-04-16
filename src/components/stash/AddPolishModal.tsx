@@ -13,8 +13,9 @@ import type { PolishWithBrand, StashStatus } from '@/lib/types/app.types'
 
 const STATUS_OPTIONS: { value: StashStatus; label: string; desc: string }[] = [
   { value: 'owned', label: 'Owned', desc: 'In my collection' },
+  { value: 'destashed', label: 'Destashed', desc: 'Used up or passed on' },
   { value: 'wishlist', label: 'Wishlist', desc: 'Want to buy' },
-  { value: 'bookmarked', label: 'Bookmarked', desc: 'Just keeping an eye on it' },
+  { value: 'bookmarked', label: 'Bookmarked', desc: 'Keeping an eye on it' },
 ]
 
 export function AddPolishModal() {

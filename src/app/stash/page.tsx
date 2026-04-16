@@ -30,6 +30,12 @@ const TABS: { value: StashStatus; label: string; emptyHeading: string; emptyBody
     emptyHeading: 'No bookmarks yet',
     emptyBody: 'Bookmark polishes you\'re researching or keeping an eye on.',
   },
+  {
+    value: 'destashed',
+    label: 'Destashed',
+    emptyHeading: 'Nothing destashed yet',
+    emptyBody: 'Polishes you\'ve used up or passed on live here. Their ratings still count.',
+  },
 ]
 
 function formatMoney(cents: number) {
@@ -94,7 +100,9 @@ export default async function StashPage({ searchParams }: PageProps) {
   if (!user) redirect('/login?next=/stash')
 
   const { tab: tabParam } = await searchParams
-  const activeTab: StashStatus = (tabParam === 'wishlist' || tabParam === 'bookmarked') ? tabParam : 'owned'
+  const activeTab: StashStatus = (['wishlist', 'bookmarked', 'destashed'] as StashStatus[]).includes(tabParam as StashStatus)
+    ? tabParam as StashStatus
+    : 'owned'
 
   const summary = await getUserStashSummary(user.id)
   const totalAll = summary.owned.items.length + summary.wishlist.items.length + summary.bookmarked.items.length
@@ -174,11 +182,21 @@ export default async function StashPage({ searchParams }: PageProps) {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {activeItems.map(item => (
-            activeTab === 'owned'
-              ? <StashPolishCard key={item.id} item={item} />
-              : <PolishCard key={item.id} polish={item.polish} showDupeCount />
-          ))}
+          {activeItems.map(item => {
+            if (activeTab === 'owned') return <StashPolishCard key={item.id} item={item} />
+            if (activeTab === 'destashed') return (
+              <div key={item.id} className="flex flex-col opacity-70 hover:opacity-100 transition-opacity">
+                <PolishCard polish={item.polish} showDupeCount />
+                <Link
+                  href={`/polishes/${item.polish.brand.slug}/${item.polish.slug}#dupes`}
+                  className="mt-1.5 text-center text-[11px] font-semibold text-primary hover:underline"
+                >
+                  Find a dupe →
+                </Link>
+              </div>
+            )
+            return <PolishCard key={item.id} polish={item.polish} showDupeCount />
+          })}
         </div>
       )}
     </div>

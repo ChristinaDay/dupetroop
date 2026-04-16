@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function addToStash(input: {
   polishId: string
-  status?: 'owned' | 'wishlist' | 'bookmarked'
+  status?: 'owned' | 'wishlist' | 'bookmarked' | 'destashed'
   notes?: string
 }): Promise<{ id: string } | { error: string }> {
   const supabase = await createClient()
@@ -61,7 +61,7 @@ export async function rateStashItem(
 
 export async function updateStashItemStatus(
   stashItemId: string,
-  status: 'owned' | 'wishlist' | 'bookmarked'
+  status: 'owned' | 'wishlist' | 'bookmarked' | 'destashed'
 ): Promise<{ success: true } | { error: string }> {
   const supabase = await createClient()
 

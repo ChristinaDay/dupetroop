@@ -24,7 +24,7 @@ export async function getUserStashSummary(userId: string): Promise<StashSummary>
 
   const all = (data ?? []) as unknown as StashItemWithPolish[]
 
-  const bucket = (status: 'owned' | 'wishlist' | 'bookmarked') => {
+  const bucket = (status: 'owned' | 'wishlist' | 'bookmarked' | 'destashed') => {
     const items = all.filter(i => i.status === status)
     let value = 0
     let unknownCount = 0
@@ -40,6 +40,7 @@ export async function getUserStashSummary(userId: string): Promise<StashSummary>
     owned: bucket('owned'),
     wishlist: bucket('wishlist'),
     bookmarked: bucket('bookmarked'),
+    destashed: bucket('destashed'),
   }
 }
 
