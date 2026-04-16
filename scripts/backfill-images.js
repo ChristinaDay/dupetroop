@@ -104,16 +104,20 @@ const BRAND_CONFIG = {
     },
   },
 
-  // ── Possibly offline / Cloudflare-blocked — will log errors gracefully ──────
+  // ── Site down — holding page only, no product catalog accessible ─────────────
+  // differentdimension.com redirects to /lander. Manual image URLs required.
   'different-dimension': {
     domain: 'differentdimension.com',
     strategy: 'html',
     productPaths: ['/products/{slug}'],
   },
+  // BigCartel store. Site redirects bare domain → www; og:image in raw HTML.
+  // Old polishes are discontinued — seed script now fetches current catalog.
+  // Backfill matches by normalized name after re-seeding.
   'glisten-and-glow': {
-    domain: 'glistenandglow.com',
+    domain: 'www.glistenandglow.com',
     strategy: 'html',
-    productPaths: ['/products/{slug}'],
+    productPaths: ['/product/{slug}'],
   },
 
   // ── OPI — Shopify store, products at /products/nail-lacquer-{slug} ────────────

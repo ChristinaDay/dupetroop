@@ -119,7 +119,7 @@ function slugify(name) {
 
 const BUNDLE_KEYWORDS = ['bundle', 'gift', 'kit', 'set', 'oil', 'remover', 'file', 'buffer',
   'sticker', 'nail art', 'replacement', 'brush', 'spatula', 'capsule collection', 'duo', 'trio',
-  'quad', 'collection', 'thinner', 'dropper']
+  'quad', 'collection', 'thinner', 'dropper', 'refill', 'prep', 'restore']
 
 function isActualPolish(product) {
   const t = product.title.toLowerCase()
@@ -213,6 +213,57 @@ async function fetchILNPProducts(brandId, categories, limitPerCategory = 15) {
       if (products.length < 100) break
       page++
     }
+  }
+  return results
+}
+
+// ─── Fetch from Glisten & Glow (BigCartel) ───────────────────────────────────
+
+async function fetchGlistenAndGlow(brandId, limit = 20) {
+  const headers = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' }
+  const base = 'https://www.glistenandglow.com'
+
+  // Fetch homepage to collect all product links
+  const homeRes = await fetch(base, { headers })
+  if (!homeRes.ok) throw new Error(`Homepage fetch failed: HTTP ${homeRes.status}`)
+  const homeHtml = await homeRes.text()
+  const productPaths = [...new Set(
+    [...homeHtml.matchAll(/href="(\/product\/[^"]+)"/gi)].map(m => m[1])
+  )]
+
+  const results = []
+  const BUNDLE_KEYWORDS_LOWER = BUNDLE_KEYWORDS.map(k => k.toLowerCase())
+
+  for (const path of productPaths) {
+    if (results.length >= limit) break
+
+    const res = await fetch(`${base}${path}`, { headers })
+    if (!res.ok) continue
+    const html = await res.text()
+
+    const title = html.match(/<title>([^|<]+)/i)?.[1]?.trim() ?? null
+    if (!title) continue
+    if (BUNDLE_KEYWORDS_LOWER.some(k => title.toLowerCase().includes(k))) continue
+
+    const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1]
+             ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)?.[1]
+             ?? null
+    // Skip if the og:image is just the store logo
+    if (og?.includes('account_images')) continue
+
+    const slug = path.replace('/product/', '')
+    results.push({
+      brand_id: brandId,
+      name: title,
+      slug,
+      hex_color: '#888888',
+      finish_category: 'other',
+      color_family: 'neutral',
+      msrp_usd: 11,
+      is_verified: true,
+      is_limited: false,
+      images: og ? [og] : [],
+    })
   }
   return results
 }
@@ -374,14 +425,17 @@ async function run() {
     console.error('  Error:', e.message)
   }
 
-  // ── Glisten & Glow (manual) ─────────────────────────────────────────────────
-  console.log('Adding Glisten & Glow...')
-  allPolishes.push(...manual(brandId['glisten-and-glow'], [
-    { name: 'HK Girl',              slug: 'hk-girl',              hex_color: '#F0F0F0', finish_category: 'topper', color_family: 'neutral', msrp_usd: 11 },
-    { name: 'Mermaid Wishes',       slug: 'mermaid-wishes',       hex_color: '#5DC8C8', finish_category: 'holo',   color_family: 'blue',    msrp_usd: 11 },
-    { name: 'Kicking and Streaming',slug: 'kicking-and-streaming',hex_color: '#4A90A0', finish_category: 'shimmer',color_family: 'blue',    msrp_usd: 11 },
-    { name: 'Lemon Drop',           slug: 'lemon-drop',           hex_color: '#E8D840', finish_category: 'holo',   color_family: 'yellow',  msrp_usd: 11 },
-  ]))
+  // ── Glisten & Glow (BigCartel — live fetch from homepage product links) ──────
+  // Site redirects glistenandglow.com → www.glistenandglow.com.
+  // All products appear on the homepage; og:image is in raw HTML per product page.
+  console.log('Fetching Glisten & Glow catalog...')
+  try {
+    const gngPolishes = await fetchGlistenAndGlow(brandId['glisten-and-glow'], 20)
+    console.log(`  ${gngPolishes.length} products (${gngPolishes.filter(p => p.images?.length).length} with images)`)
+    allPolishes.push(...gngPolishes)
+  } catch (e) {
+    console.error('  Error:', e.message)
+  }
 
   // ── OPI (manual) ────────────────────────────────────────────────────────────
   console.log('Adding OPI...')
