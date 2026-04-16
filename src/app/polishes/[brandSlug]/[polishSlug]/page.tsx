@@ -11,6 +11,7 @@ import { PolishBadge } from '@/components/polish/PolishBadge'
 import { DupeCard } from '@/components/dupe/DupeCard'
 import { LookCard } from '@/components/look/LookCard'
 import { AddToStashButton } from '@/components/stash/AddToStashButton'
+import { InlinePolishRating } from '@/components/stash/InlinePolishRating'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/utils/format'
@@ -39,18 +40,20 @@ export default async function PolishDetailPage({ params }: PageProps) {
 
   // Check if this polish is already in the user's stash
   let stashItemId: string | undefined
-  let stashItemStatus: 'owned' | 'wishlist' | 'bookmarked' | undefined
+  let stashItemStatus: 'owned' | 'wishlist' | 'bookmarked' | 'destashed' | undefined
+  let stashItemRating: number | null = null
   if (user) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     const { data } = await db
       .from('stash_items')
-      .select('id, status')
+      .select('id, status, rating')
       .eq('user_id', user.id)
       .eq('polish_id', polish.id)
       .maybeSingle()
     stashItemId = data?.id
     stashItemStatus = data?.status
+    stashItemRating = data?.rating ?? null
   }
 
   const [dupes, looks, ratings] = await Promise.all([
@@ -118,6 +121,12 @@ export default async function PolishDetailPage({ params }: PageProps) {
               />
             )}
           </div>
+          {user && stashItemId && stashItemStatus === 'owned' && (
+            <InlinePolishRating
+              stashItemId={stashItemId}
+              initialRating={stashItemRating}
+            />
+          )}
           {polish.finish_notes && (
             <p className="text-sm text-muted-foreground mt-3 italic">{polish.finish_notes}</p>
           )}
