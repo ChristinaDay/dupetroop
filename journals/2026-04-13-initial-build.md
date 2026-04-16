@@ -648,6 +648,46 @@ Complete visual overhaul — image-first, Pinterest-style split gallery.
 
 ---
 
+## Session 11 — April 16, 2026
+
+### What was completed
+
+#### Three-dimension polish ratings (color / finish / formula)
+
+Replaced the single `rating` field on stash items with three independent dimensions matching the dupe rating system.
+
+**Migration 010** — schema changes:
+- `stash_items`: dropped `rating`, added `color_rating`, `finish_rating`, `formula_rating` (INTEGER 1–5)
+- `polishes`: added `avg_rating`, `avg_color_rating`, `avg_finish_rating`, `avg_formula_rating` (NUMERIC 3,2), `rating_count` (INTEGER)
+- Postgres trigger `trg_update_polish_avg_rating` — fires on stash_items INSERT/UPDATE/DELETE; only counts `owned` + `destashed` items with all three dimensions filled; same denormalization pattern as `dupes.avg_overall`
+
+**StashPolishCard** — single star row on the stash grid. Clicking a star quick-sets all three dimensions to the same value (fast overall rating). Shows decimal avg (e.g. 4.3).
+
+**InlinePolishRating** — collapsible panel on the polish detail page for stash owners:
+- Collapsed: "Rate this polish" or "Your rating" + avg stars + score
+- Expanded: three independent Color / Finish / Formula rows, each saves immediately on click; click same star to clear
+- Panel is `inline-block` — only as wide as its content
+
+**Ratings strip on polish detail page** — updated to show per-dimension breakdown:
+- Community overall avg + star display
+- Color / Finish / Formula chips below (e.g. **4.2** Color · **3.8** Finish · **4.5** Formula)
+- `getPolishRatings()` now reads from denormalized columns on `polishes` instead of aggregating stash_items at query time
+
+#### Product page link improvements
+
+- External rating source links now render consistently as "on [Brand] ↗" with a small ExternalLink icon
+- Ratings strip now renders for any polish with a `product_url`, even if there are no ratings — shows a plain "on [Brand] ↗" link so the product page is always discoverable (fixes brands like Cirque Colors that have no review data)
+
+### Still to do (next priorities)
+
+- [ ] Polish detail page: recipe section redesign — surface full component alternatives matrix, fold `/looks/[lookId]` into the page
+- [ ] Profile page for other users (`/profile/[username]`)
+- [ ] "Report" button on opinions for moderation
+- [ ] Brand management UI in admin
+- [ ] Open Graph images for polish/dupe pages
+
+---
+
 ## How to Run Locally
 
 ```bash
