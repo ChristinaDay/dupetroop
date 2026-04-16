@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { DupePolishColumn } from '@/components/dupe/DupePolishColumn'
 import { DupeCard } from '@/components/dupe/DupeCard'
 import { OpinionCard } from '@/components/opinion/OpinionCard'
-import { OpinionForm } from '@/components/opinion/OpinionForm'
+import { CollapsibleOpinionForm } from '@/components/opinion/CollapsibleOpinionForm'
 import { Button } from '@/components/ui/button'
 import { formatScore } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
@@ -112,16 +112,8 @@ export default async function DupeDetailPage({ params }: PageProps) {
 
       {/* Opinion form */}
       <div className="mb-10">
-        <h2 className="text-xl font-black mb-1">
-          {userOpinion ? 'Your rating' : 'Have you tried both?'}
-        </h2>
-        {!userOpinion && (
-          <p className="text-sm text-muted-foreground mb-4">Share your take on how well this dupe holds up.</p>
-        )}
         {user ? (
-          <div className="border border-border rounded-xl p-6">
-            <OpinionForm dupeId={dupeId} existingOpinion={userOpinion} />
-          </div>
+          <CollapsibleOpinionForm dupeId={dupeId} existingOpinion={userOpinion} />
         ) : (
           <div className="border border-dashed border-border rounded-xl p-8 text-center">
             <p className="text-muted-foreground mb-4">Log in to rate this dupe and share your opinion.</p>
