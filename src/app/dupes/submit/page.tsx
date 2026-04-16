@@ -2,16 +2,22 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ArrowRight, Check } from 'lucide-react'
+import { Search, ArrowRight, Check, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { PolishSwatch } from '@/components/polish/PolishSwatch'
 import { PolishBadge } from '@/components/polish/PolishBadge'
 import { submitDupe } from '@/lib/actions/dupe.actions'
+import { submitPolish } from '@/lib/actions/polish.actions'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import type { PolishWithBrand } from '@/lib/types/app.types'
+import type { PolishWithBrand, Brand, FinishCategory } from '@/lib/types/app.types'
+
+const FINISH_CATEGORIES: FinishCategory[] = [
+  'cream', 'shimmer', 'glitter', 'flakies', 'duochrome', 'multichrome',
+  'holo', 'magnetic', 'jelly', 'tinted', 'matte', 'satin', 'topper', 'other',
+]
 
 type Step = 1 | 2 | 3
 
@@ -30,8 +36,18 @@ function PolishSearchCombobox({
   const [results, setResults] = useState<PolishWithBrand[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Stub creation state
+  const [showStubForm, setShowStubForm] = useState(false)
+  const [stubName, setStubName] = useState('')
+  const [stubBrandId, setStubBrandId] = useState('')
+  const [stubFinish, setStubFinish] = useState<FinishCategory>('cream')
+  const [brands, setBrands] = useState<Brand[]>([])
+  const [loadingBrands, setLoadingBrands] = useState(false)
+  const [submittingStub, setSubmittingStub] = useState(false)
+
   const search = async (q: string) => {
     setQuery(q)
+    setShowStubForm(false)
     if (q.length < 2) { setResults([]); return }
     setLoading(true)
     const supabase = createClient()
@@ -47,6 +63,44 @@ function PolishSearchCombobox({
     )
   }
 
+  const openStubForm = async () => {
+    setStubName(query)
+    setShowStubForm(true)
+    if (brands.length === 0) {
+      setLoadingBrands(true)
+      const supabase = createClient()
+      const { data } = await supabase.from('brands').select('*').eq('is_active', true).order('name')
+      setBrands((data ?? []) as Brand[])
+      setLoadingBrands(false)
+    }
+  }
+
+  const handleAddStub = async () => {
+    if (!stubBrandId || !stubName.trim()) return
+    setSubmittingStub(true)
+    const result = await submitPolish({
+      brandId: stubBrandId,
+      name: stubName.trim(),
+      finishCategory: stubFinish,
+    })
+    if ('error' in result) {
+      toast.error(result.error)
+      setSubmittingStub(false)
+      return
+    }
+    // Fetch the created record with brand joined so we can auto-select it
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('polishes')
+      .select('*, brand:brands(*), collection:collections(*)')
+      .eq('id', result.polishId)
+      .single()
+    if (data) onChange(data as unknown as PolishWithBrand)
+    setShowStubForm(false)
+    setSubmittingStub(false)
+    setQuery('')
+  }
+
   if (value) {
     return (
       <div className="flex items-center gap-3 border border-border rounded-xl p-4">
@@ -54,7 +108,12 @@ function PolishSearchCombobox({
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground">{value.brand.name}</p>
           <p className="font-bold">{value.name}</p>
-          <PolishBadge finish={value.finish_category} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <PolishBadge finish={value.finish_category} />
+            {!value.is_verified && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">pending review</span>
+            )}
+          </div>
         </div>
         <Button variant="ghost" size="sm" onClick={() => onChange(null)}>Change</Button>
       </div>
@@ -92,8 +151,82 @@ function PolishSearchCombobox({
           ))}
         </div>
       )}
-      {query.length >= 2 && results.length === 0 && !loading && (
-        <p className="text-xs text-muted-foreground px-1">No results. Is this polish in the database?</p>
+      {query.length >= 2 && results.length === 0 && !loading && !showStubForm && (
+        <div className="px-1 space-y-1">
+          <p className="text-xs text-muted-foreground">No results for &ldquo;{query}&rdquo;.</p>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline"
+            onClick={openStubForm}
+          >
+            <Plus className="h-3 w-3" /> Add &ldquo;{query}&rdquo; as a new polish
+          </button>
+        </div>
+      )}
+      {showStubForm && (
+        <div className="border border-border rounded-xl p-4 space-y-3 bg-card">
+          <div>
+            <p className="text-sm font-bold">Add a new polish</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              It&rsquo;ll be reviewed before going live, but you can still submit your dupe now.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold">Name</label>
+            <Input
+              value={stubName}
+              onChange={e => setStubName(e.target.value)}
+              placeholder="Polish name"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold">Brand</label>
+            {loadingBrands ? (
+              <p className="text-xs text-muted-foreground">Loading brands…</p>
+            ) : (
+              <select
+                value={stubBrandId}
+                onChange={e => setStubBrandId(e.target.value)}
+                className="w-full border border-input rounded-md text-sm px-3 py-2 bg-background"
+              >
+                <option value="">Select brand…</option>
+                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            )}
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold">Finish</label>
+            <select
+              value={stubFinish}
+              onChange={e => setStubFinish(e.target.value as FinishCategory)}
+              className="w-full border border-input rounded-md text-sm px-3 py-2 bg-background capitalize"
+            >
+              {FINISH_CATEGORIES.map(f => (
+                <option key={f} value={f} className="capitalize">{f}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => setShowStubForm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="flex-1"
+              onClick={handleAddStub}
+              disabled={!stubBrandId || !stubName.trim() || submittingStub}
+            >
+              {submittingStub ? 'Adding…' : 'Add polish'}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )
