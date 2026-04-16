@@ -4,6 +4,7 @@ import { getUserStash } from '@/lib/queries/stash'
 import { PolishCard } from '@/components/polish/PolishCard'
 import { Button } from '@/components/ui/button'
 import { CsvImportModal } from '@/components/stash/CsvImportModal'
+import { AddPolishModal } from '@/components/stash/AddPolishModal'
 import Link from 'next/link'
 
 export const metadata = { title: 'My Stash — DupeTroop' }
@@ -25,6 +26,7 @@ export default async function StashPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <AddPolishModal />
           <CsvImportModal />
           {total > 0 && (
             <Button asChild variant="outline" size="sm">
