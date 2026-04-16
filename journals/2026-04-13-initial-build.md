@@ -673,10 +673,19 @@ Replaced the single `rating` field on stash items with three independent dimensi
 - Color / Finish / Formula chips below (e.g. **4.2** Color · **3.8** Finish · **4.5** Formula)
 - `getPolishRatings()` now reads from denormalized columns on `polishes` instead of aggregating stash_items at query time
 
+#### Polish rating dropdown — content-width only
+
+The `InlinePolishRating` collapsible was previously `w-full`, stretching edge-to-edge across the polish detail header. Changed to `inline-block` so it only takes up as much width as its content. The panel is a secondary affordance for stash owners — it shouldn't dominate the layout or feel like a form that demands attention.
+
 #### Product page link improvements
 
-- External rating source links now render consistently as "on [Brand] ↗" with a small ExternalLink icon
-- Ratings strip now renders for any polish with a `product_url`, even if there are no ratings — shows a plain "on [Brand] ↗" link so the product page is always discoverable (fixes brands like Cirque Colors that have no review data)
+**The problem:** External rating links in the ratings strip previously showed the bare brand name (e.g. "Holo Taco") as link text with no visual cue that it led to the product page. For brands like Cirque Colors and Rogue Lacquer that have no review data, the entire ratings strip was hidden — meaning those polishes had no discoverable path to the original product page in that area of the page (the "Shop" button at the top was the only option, and easy to miss).
+
+**What was ruled out:** Renaming "Shop" to "Original product page" — too verbose for a button, and "Shop" is perfectly clear in context. Kept as-is.
+
+**What was built:**
+- External rating source links now read "on [Brand] ↗" consistently — the "on" prefix clarifies it's a contextual link, not just a label; the ExternalLink icon confirms it opens a new tab
+- Ratings strip condition expanded: renders whenever a polish has `product_url`, even with zero ratings. Polishes without any external ratings show a standalone "on [Brand] ↗" link — no score, just the link. This ensures every polish with a known product URL has a discoverable path to the brand's page regardless of review coverage.
 
 ### Still to do (next priorities)
 
