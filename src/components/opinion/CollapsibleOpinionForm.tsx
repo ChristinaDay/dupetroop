@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Star } from 'lucide-react'
 import { OpinionForm } from './OpinionForm'
 import type { DupeOpinion } from '@/lib/types/app.types'
 
@@ -21,9 +21,18 @@ export function CollapsibleOpinionForm({ dupeId, existingOpinion }: CollapsibleO
         className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/50 transition-colors text-left"
       >
         <div>
-          <p className="font-black">
-            {existingOpinion ? 'Your rating' : 'Rate this dupe'}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="font-black">
+              {existingOpinion ? 'Your rating' : 'Rate this dupe'}
+            </p>
+            {!existingOpinion && (
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(s => (
+                  <Star key={s} className="h-3.5 w-3.5 fill-transparent stroke-muted-foreground/50" />
+                ))}
+              </div>
+            )}
+          </div>
           {!existingOpinion && (
             <p className="text-sm text-muted-foreground mt-0.5">
               Tried both? Leave a rating.
