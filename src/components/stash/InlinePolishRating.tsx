@@ -85,13 +85,12 @@ export function InlinePolishRating({
   }
 
   return (
-    <div className="mt-4 border border-border rounded-xl overflow-hidden">
+    <div className="mt-4 inline-block border border-border rounded-xl overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-accent/50 transition-colors text-left"
+        className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors text-left"
       >
-        <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground">
             {hasRating ? 'Your rating' : 'Rate this polish'}
           </span>
@@ -110,14 +109,13 @@ export function InlinePolishRating({
           {hasRating && avg !== null && (
             <span className="text-[10px] text-muted-foreground tabular-nums">{avg.toFixed(1)}/5</span>
           )}
-        </div>
-        <ChevronDown
-          className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        />
+          <ChevronDown
+            className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          />
       </button>
 
       {open && (
-        <div className="border-t border-border px-4 py-3 space-y-2.5">
+        <div className="border-t border-border px-4 py-3 space-y-2.5 min-w-[200px]">
           <DimensionRating label="Color" value={color} onChange={v => handleChange('color', v)} disabled={isPending} />
           <DimensionRating label="Finish" value={finish} onChange={v => handleChange('finish', v)} disabled={isPending} />
           <DimensionRating label="Formula" value={formula} onChange={v => handleChange('formula', v)} disabled={isPending} />

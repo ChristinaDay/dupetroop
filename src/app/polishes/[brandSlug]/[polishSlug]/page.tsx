@@ -143,7 +143,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
       </div>
 
       {/* Ratings strip */}
-      {(ratings.ownerRating || ratings.externalRatings.length > 0) && (
+      {(ratings.ownerRating || ratings.externalRatings.length > 0 || polish.product_url) && (
         <div className="py-4 border-y border-border mb-8 space-y-3">
           {ratings.ownerRating && (
             <div className="space-y-1.5">
@@ -184,17 +184,29 @@ export default async function PolishDetailPage({ params }: PageProps) {
                 ))}
               </div>
               {ext.source_url ? (
-                <a href={ext.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                  {ext.source_label}{ext.review_count ? ` (${ext.review_count.toLocaleString()})` : ''}
+                <a href={ext.source_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                  on {ext.source_label}{ext.review_count ? ` (${ext.review_count.toLocaleString()})` : ''}
+                  <ExternalLink className="h-2.5 w-2.5 shrink-0" />
                 </a>
               ) : (
                 <span className="text-xs text-muted-foreground">
-                  {ext.source_label}{ext.review_count ? ` (${ext.review_count.toLocaleString()})` : ''}
+                  on {ext.source_label}{ext.review_count ? ` (${ext.review_count.toLocaleString()})` : ''}
                 </span>
               )}
             </div>
           ))}
             </div>
+          )}
+          {polish.product_url && ratings.externalRatings.length === 0 && (
+            <a
+              href={polish.product_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors w-fit"
+            >
+              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+              on {polish.brand.name}
+            </a>
           )}
         </div>
       )}
