@@ -103,3 +103,22 @@ export async function updateBrand(
   revalidatePath(`/brands/${slug}`)
   return { success: true }
 }
+
+export async function toggleBrandActive(
+  id: string,
+  isActive: boolean,
+): Promise<{ success: true } | { error: string }> {
+  const { error: authError, supabase } = await requireAdmin()
+  if (authError || !supabase) return { error: authError ?? 'Unauthorized' }
+
+  const { error } = await supabase
+    .from('brands')
+    .update({ is_active: isActive, updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/brands')
+  revalidatePath('/brands')
+  return { success: true }
+}

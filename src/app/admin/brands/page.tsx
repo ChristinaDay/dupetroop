@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { BrandActiveToggle } from '@/components/admin/BrandActiveToggle'
 
 const PRICE_TIER_LABELS: Record<number, string> = {
   1: 'Drugstore',
@@ -13,10 +14,11 @@ const PRICE_TIER_LABELS: Record<number, string> = {
 
 export default async function AdminBrandsPage() {
   const supabase = await createClient()
-  // Fetch all brands including inactive, ordered by name
+
+  // Fetch all brands including inactive, ordered by name, with polish counts
   const { data: brands } = await supabase
     .from('brands')
-    .select('*')
+    .select('*, polishes(count)')
     .order('name')
 
   const active = (brands ?? []).filter(b => b.is_active)
@@ -34,56 +36,68 @@ export default async function AdminBrandsPage() {
       </div>
 
       <div className="space-y-2">
-        {(brands ?? []).map(brand => (
-          <div
-            key={brand.id}
-            className={`flex items-center gap-3 border border-border rounded-lg px-4 py-3 ${!brand.is_active ? 'opacity-50' : ''}`}
-          >
-            {/* Logo */}
-            {brand.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={brand.logo_url} alt={brand.name} className="h-8 w-8 rounded-full object-contain border border-border shrink-0" />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-black text-muted-foreground shrink-0">
-                {brand.name.slice(0, 2).toUpperCase()}
-              </div>
-            )}
+        {(brands ?? []).map(brand => {
+          const polishCount = (brand.polishes as unknown as { count: number }[])?.[0]?.count ?? 0
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold">{brand.name}</span>
-                {!brand.is_active && (
-                  <span className="text-xs text-muted-foreground italic">inactive</span>
-                )}
+          return (
+            <div
+              key={brand.id}
+              className={`flex items-center gap-3 border border-border rounded-lg px-4 py-3 ${!brand.is_active ? 'opacity-50' : ''}`}
+            >
+              {/* Logo */}
+              {brand.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={brand.logo_url} alt={brand.name} className="h-8 w-8 rounded-full object-contain border border-border shrink-0" />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-black text-muted-foreground shrink-0">
+                  {brand.name.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold">{brand.name}</span>
+                  {!brand.is_active && (
+                    <span className="text-xs text-muted-foreground italic">inactive</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="text-xs text-muted-foreground font-mono">{brand.slug}</span>
+                  {brand.country_of_origin && (
+                    <span className="text-xs text-muted-foreground">· {brand.country_of_origin}</span>
+                  )}
+                  {brand.price_tier && (
+                    <span className="text-xs text-muted-foreground">· {PRICE_TIER_LABELS[brand.price_tier]}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    · {polishCount.toLocaleString()} polish{polishCount !== 1 ? 'es' : ''}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-xs text-muted-foreground font-mono">{brand.slug}</span>
-                {brand.country_of_origin && (
-                  <span className="text-xs text-muted-foreground">· {brand.country_of_origin}</span>
-                )}
-                {brand.price_tier && (
-                  <span className="text-xs text-muted-foreground">· {PRICE_TIER_LABELS[brand.price_tier]}</span>
-                )}
+
+              {/* Badges */}
+              <div className="flex items-center gap-2 shrink-0">
+                {brand.is_indie && <Badge variant="secondary" className="text-xs">Indie</Badge>}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 shrink-0">
+                <BrandActiveToggle
+                  brandId={brand.id}
+                  brandName={brand.name}
+                  isActive={brand.is_active}
+                />
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/brands/${brand.slug}`} target="_blank">View</Link>
+                </Button>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/admin/brands/${brand.id}/edit`}>Edit</Link>
+                </Button>
               </div>
             </div>
-
-            {/* Badges */}
-            <div className="flex items-center gap-2 shrink-0">
-              {brand.is_indie && <Badge variant="secondary" className="text-xs">Indie</Badge>}
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-1 shrink-0">
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/brands/${brand.slug}`} target="_blank">View</Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/admin/brands/${brand.id}/edit`}>Edit</Link>
-              </Button>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

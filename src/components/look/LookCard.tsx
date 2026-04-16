@@ -5,22 +5,7 @@ import type { LookCard as LookCardType } from '@/lib/queries/looks'
 import type { LookComponent } from '@/lib/types/app.types'
 
 // Source badge config
-const SOURCE_CONFIG = {
-  reddit: {
-    label: 'Reddit',
-    className: 'bg-[#FF4500]/10 text-[#FF4500] border-[#FF4500]/20',
-    dot: 'bg-[#FF4500]',
-  },
-  instagram: {
-    label: 'Instagram',
-    className: 'bg-pink-500/10 text-pink-600 border-pink-300/30 dark:text-pink-400',
-    dot: 'bg-gradient-to-br from-pink-500 to-purple-600',
-  },
-  tiktok: {
-    label: 'TikTok',
-    className: 'bg-cyan-500/10 text-cyan-700 border-cyan-300/30 dark:text-cyan-400',
-    dot: 'bg-cyan-500',
-  },
+const SOURCE_CONFIG: Partial<Record<string, { label: string; className: string; dot: string }>> = {
   admin: {
     label: 'Staff Pick',
     className: 'bg-primary/10 text-primary border-primary/20',
@@ -37,6 +22,7 @@ interface LookCardProps {
 
 export function SourceBadge({ source }: { source: LookCardType['source_type'] }) {
   const config = SOURCE_CONFIG[source]
+  if (!config) return null
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${config.className}`}

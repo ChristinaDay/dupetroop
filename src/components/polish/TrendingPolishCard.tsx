@@ -4,22 +4,7 @@ import { PolishBadge } from './PolishBadge'
 import { formatPrice } from '@/lib/utils/format'
 import type { FeaturedPolish, FeaturedSourceType } from '@/lib/types/app.types'
 
-const SOURCE_CONFIG: Record<FeaturedSourceType, { label: string; className: string; dot: string }> = {
-  reddit: {
-    label: 'Trending on Reddit',
-    className: 'bg-[#FF4500]/10 text-[#FF4500] border-[#FF4500]/20',
-    dot: 'bg-[#FF4500]',
-  },
-  instagram: {
-    label: 'Trending on Instagram',
-    className: 'bg-pink-500/10 text-pink-600 border-pink-300/30 dark:text-pink-400',
-    dot: 'bg-gradient-to-br from-pink-500 to-purple-600',
-  },
-  tiktok: {
-    label: 'Trending on TikTok',
-    className: 'bg-cyan-500/10 text-cyan-700 border-cyan-300/30 dark:text-cyan-400',
-    dot: 'bg-cyan-500',
-  },
+const SOURCE_CONFIG: Partial<Record<FeaturedSourceType, { label: string; className: string; dot: string }>> = {
   admin: {
     label: 'Staff Pick',
     className: 'bg-primary/10 text-primary border-primary/20',

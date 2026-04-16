@@ -14,9 +14,6 @@ import { toast } from 'sonner'
 import type { PolishWithBrand, LookSourceType, ComponentRole } from '@/lib/types/app.types'
 
 const SOURCE_OPTIONS: { value: LookSourceType; label: string }[] = [
-  { value: 'reddit', label: 'Reddit' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'tiktok', label: 'TikTok' },
   { value: 'admin', label: 'Staff Pick' },
 ]
 
@@ -256,7 +253,7 @@ export default function NewLookPage() {
             <Input
               value={sourceUrl}
               onChange={e => setSourceUrl(e.target.value)}
-              placeholder="https://reddit.com/…"
+              placeholder="https://…"
               type="url"
             />
           </div>

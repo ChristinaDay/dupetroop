@@ -92,16 +92,6 @@ export default async function HomePage() {
             <div className="flex items-center gap-2 mb-6">
               <Flame className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-black tracking-tight">Trending Now</h2>
-              <div className="hidden sm:flex items-center gap-1.5 ml-2">
-                {(['reddit', 'instagram', 'tiktok'] as const).map(src => (
-                  <span
-                    key={src}
-                    className="rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-border"
-                  >
-                    {src}
-                  </span>
-                ))}
-              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {featuredPolishes.map(polish => (

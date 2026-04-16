@@ -12,9 +12,6 @@ import type { PolishWithBrand, FeaturedSourceType } from '@/lib/types/app.types'
 
 const SOURCE_OPTIONS: { value: FeaturedSourceType; label: string }[] = [
   { value: 'admin', label: 'Staff Pick' },
-  { value: 'reddit', label: 'Reddit' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'tiktok', label: 'TikTok' },
 ]
 
 export function AdminFeaturePolishSearch() {
@@ -106,7 +103,7 @@ export function AdminFeaturePolishSearch() {
             <Input
               value={sourceUrl}
               onChange={e => setSourceUrl(e.target.value)}
-              placeholder="https://reddit.com/r/lacqueristas/..."
+              placeholder="https://..."
               className="h-8 text-sm"
             />
           </div>
