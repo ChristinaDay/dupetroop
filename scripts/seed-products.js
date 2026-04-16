@@ -343,7 +343,9 @@ async function fetchKBShimmerCatalog(brandId, limit = 30) {
 // ─── Manually curated products ───────────────────────────────────────────────
 
 function manual(brandId, products) {
-  return products.map(p => ({ brand_id: brandId, is_verified: true, is_limited: false, images: [], ...p }))
+  // Do NOT include images: [] — omitting the field means upsert leaves existing
+  // backfilled images untouched on conflict rather than overwriting with empty.
+  return products.map(p => ({ brand_id: brandId, is_verified: true, is_limited: false, ...p }))
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
