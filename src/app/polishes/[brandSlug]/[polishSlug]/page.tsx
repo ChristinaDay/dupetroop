@@ -141,55 +141,67 @@ export default async function PolishDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Dupes */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-black tracking-tight">
-            Dupes{dupes.length > 0 ? ` (${dupes.length})` : ''}
-          </h2>
-          <Button asChild size="sm">
-            <Link href={`/dupes/submit?a=${polish.id}`}>+ Submit a dupe</Link>
-          </Button>
+      {/* Ways to get this look */}
+      <div className="space-y-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black tracking-tight">Ways to get this look</h2>
         </div>
 
-        {dupes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {dupes.map(dupe => (
-              <DupeCard key={dupe.id} dupe={dupe} />
-            ))}
-          </div>
-        ) : (
-          <div className="border border-dashed border-border rounded-xl py-16 text-center">
-            <p className="text-muted-foreground font-medium">No dupes yet.</p>
-            <p className="text-sm text-muted-foreground mt-1">Know one? Help the community!</p>
-            <Button asChild className="mt-4" size="sm">
-              <Link href={`/dupes/submit?a=${polish.id}`}>Submit a dupe</Link>
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Combination Recipes */}
-      {looks.length > 0 && (
-        <div className="mt-12">
+        {/* Polish swaps */}
+        <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-2xl font-black tracking-tight">Combination Recipes</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Community-discovered ways to achieve or replicate this look
-              </p>
+              <h3 className="text-base font-bold">Polish swaps</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Single-bottle alternatives rated by the community</p>
             </div>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/looks">Browse all</Link>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/dupes/submit?a=${polish.id}`}>+ Submit a swap</Link>
             </Button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {looks.map(look => (
-              <LookCard key={look.id} look={look} />
-            ))}
-          </div>
+          {dupes.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {dupes.map(dupe => (
+                <DupeCard key={dupe.id} dupe={dupe} />
+              ))}
+            </div>
+          ) : (
+            <div className="border border-dashed border-border rounded-xl py-10 text-center">
+              <p className="text-muted-foreground font-medium">No swaps yet.</p>
+              <p className="text-sm text-muted-foreground mt-1">Know a polish that looks just like this one?</p>
+              <Button asChild className="mt-4" size="sm">
+                <Link href={`/dupes/submit?a=${polish.id}`}>Submit a swap</Link>
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Combination recipes */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-bold">Combination recipes</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Multi-polish layering techniques that recreate this look</p>
+            </div>
+            {looks.length > 0 && (
+              <Button asChild size="sm" variant="outline">
+                <Link href="/looks">Browse all</Link>
+              </Button>
+            )}
+          </div>
+          {looks.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {looks.map(look => (
+                <LookCard key={look.id} look={look} />
+              ))}
+            </div>
+          ) : (
+            <div className="border border-dashed border-border rounded-xl py-10 text-center">
+              <p className="text-muted-foreground font-medium">No recipes yet.</p>
+              <p className="text-sm text-muted-foreground mt-1">Know a combination that recreates this effect?</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

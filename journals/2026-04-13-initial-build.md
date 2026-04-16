@@ -405,6 +405,66 @@ App auto-deploys to production on every push to `main`. Required one-time setup:
 
 ---
 
+## Session 7 — April 16, 2026
+
+### What was completed
+
+#### Stash: individual polish search
+
+Added `src/components/stash/AddPolishModal.tsx` — a search-and-add modal on `/stash` that lets users find polishes by name and add them directly to their stash without leaving the page. Complements the existing CSV import.
+
+- Search input queries verified polishes by name (≥2 chars), shows swatch + brand + finish badge per result
+- Selecting a polish calls `addToStash` immediately
+- Already-added items in the session show "Added" label and disable to prevent double-taps
+- If no results: links to `/polishes/submit` to submit a new polish first
+- "Added this session" list at the bottom tracks what was added before closing
+- Button order on stash page: **+ Add polish** | Import CSV | Export CSV
+
+#### Product vision rethink: Polish detail page as the dupe hub
+
+Held a design session to rethink the community contribution model. Key decisions:
+
+**The canonical user journey that shaped this decision:**
+A user wants to know all their options for getting the Bloodbender look. They search "Bloodbender" in the search bar, select it from the results, and land on its Polish detail page. Below the product info they see everything the community knows about duping it: single-bottle alternatives with accuracy ratings, and multi-polish combination recipes (e.g. House of Hades + Scorchy, or the cheaper Casa de Heaven + Scorchy) — each with ratings and notes. One page, all options, ranked by community signal.
+
+**The core insight:** The Polish detail page is the right organizing unit for all dupe-related content — not a standalone `/dupes/submit` page. A polish like Bloodbender has two kinds of community knowledge attached to it:
+1. **Polish swaps** — single-bottle alternatives rated on color/finish/formula accuracy
+2. **Combination recipes** — multi-polish layering techniques that recreate the effect (e.g. House of Hades + Scorchy = Bloodbender)
+
+Both are answers to the same question: *"how do I get this look?"* They should live together on the polish page, not split across separate flows.
+
+**What was ruled out:**
+- Inline stub creation during dupe submission (was a workaround for a sparse DB; now that the catalog is populated it creates noise)
+- External links / YouTube tutorials (deferred — keep scope focused)
+- A standalone "submit a dupe" page divorced from context (loses its reason to exist once submissions live on the polish page)
+
+**What was confirmed about the schema:** The `looks` table already has `target_polish_id` — a Look can point at a specific polish as its target. The data model was already right; only the UI needed updating.
+
+#### Polish detail page: unified "Ways to get this look" section
+
+Replaced the two disconnected sections ("Dupes" and "Combination Recipes") with a single unified section.
+
+- Parent heading: **"Ways to get this look"**
+- **Polish swaps** subsection — same DupeCards, CTA renamed "Submit a swap", links to `/dupes/submit?a={polishId}`
+- **Combination recipes** subsection — LookCards for Looks where `target_polish_id` matches; **now always visible** (previously hidden when empty), with its own empty state
+- Both subsections have a short descriptor line clarifying the distinction
+
+### Still to do (next priorities)
+
+- [ ] Unified "suggest a combination" submission flow initiated from the polish page (currently empty state has no CTA)
+- [ ] Retire `/dupes/submit` standalone page once the new contextual flow exists
+- [ ] Search should return Looks in addition to polishes and brands
+- [ ] Profile page for other users (`/profile/[username]`)
+- [ ] "Report" button on opinions for moderation
+- [ ] Brand management UI in admin
+- [ ] Email notifications when a submitted dupe is approved/rejected
+- [ ] Open Graph images for dupe comparison pages
+- [ ] Admin brand sync tool (trigger full catalog import per brand)
+- [ ] Girly Bits + Wildflower Lacquer brands + polishes (missing from seed entirely)
+- [ ] Supernatural + Pahlish + Sally Hansen polishes (brands seeded, no polishes)
+
+---
+
 ## How to Run Locally
 
 ```bash
