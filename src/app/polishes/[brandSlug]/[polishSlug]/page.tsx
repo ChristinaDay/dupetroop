@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
-import { getPolishBySlug } from '@/lib/queries/polishes'
+import { getPolishBySlug, getPolishRatings } from '@/lib/queries/polishes'
 import { getDupesForPolish } from '@/lib/queries/dupes'
 import { getLooksForPolish } from '@/lib/queries/looks'
 import { createClient } from '@/lib/supabase/server'
@@ -53,9 +53,10 @@ export default async function PolishDetailPage({ params }: PageProps) {
     stashItemStatus = data?.status
   }
 
-  const [dupes, looks] = await Promise.all([
+  const [dupes, looks, ratings] = await Promise.all([
     getDupesForPolish(polish.id),
     getLooksForPolish(polish.id),
+    getPolishRatings(polish.id),
   ])
 
   return (
@@ -125,6 +126,45 @@ export default async function PolishDetailPage({ params }: PageProps) {
           )}
         </div>
       </div>
+
+      {/* Ratings strip */}
+      {(ratings.ownerRating || ratings.externalRatings.length > 0) && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 py-4 border-y border-border mb-8">
+          {ratings.ownerRating && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-black">{ratings.ownerRating.avg.toFixed(1)}</span>
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(s => (
+                  <svg key={s} className={`h-3 w-3 ${s <= Math.round(ratings.ownerRating!.avg) ? 'fill-primary' : 'fill-muted-foreground/30'}`} viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                ))}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {ratings.ownerRating.count} DupeTroop {ratings.ownerRating.count === 1 ? 'owner' : 'owners'}
+              </span>
+            </div>
+          )}
+          {ratings.externalRatings.map((ext, i) => (
+            <div key={ext.id} className="flex items-center gap-1.5">
+              {(ratings.ownerRating || i > 0) && <span className="text-border">·</span>}
+              <span className="text-sm font-black">{Number(ext.rating).toFixed(1)}</span>
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(s => (
+                  <svg key={s} className={`h-3 w-3 ${s <= Math.round(Number(ext.rating)) ? 'fill-amber-400' : 'fill-muted-foreground/30'}`} viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                ))}
+              </div>
+              {ext.source_url ? (
+                <a href={ext.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                  {ext.source_label}{ext.review_count ? ` (${ext.review_count.toLocaleString()})` : ''}
+                </a>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  {ext.source_label}{ext.review_count ? ` (${ext.review_count.toLocaleString()})` : ''}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Image gallery */}
       {polish.images && polish.images.length > 1 && (

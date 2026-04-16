@@ -105,10 +105,23 @@ export type StashItem = {
   user_id: string
   polish_id: string
   status: StashStatus
+  rating: number | null
+  review_notes: string | null
   notes: string | null
   is_favorite: boolean
   created_at: string
   updated_at: string
+}
+
+export type ExternalRating = {
+  id: string
+  polish_id: string
+  source: string
+  source_label: string
+  rating: number
+  review_count: number | null
+  source_url: string | null
+  fetched_at: string
 }
 
 export type StashItemWithPolish = StashItem & {

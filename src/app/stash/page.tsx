@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getUserStashSummary } from '@/lib/queries/stash'
 import { PolishCard } from '@/components/polish/PolishCard'
+import { StashPolishCard } from '@/components/stash/StashPolishCard'
 import { Button } from '@/components/ui/button'
 import { CsvImportModal } from '@/components/stash/CsvImportModal'
 import { AddPolishModal } from '@/components/stash/AddPolishModal'
@@ -174,7 +175,9 @@ export default async function StashPage({ searchParams }: PageProps) {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {activeItems.map(item => (
-            <PolishCard key={item.id} polish={item.polish} showDupeCount />
+            activeTab === 'owned'
+              ? <StashPolishCard key={item.id} item={item} />
+              : <PolishCard key={item.id} polish={item.polish} showDupeCount />
           ))}
         </div>
       )}

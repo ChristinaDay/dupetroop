@@ -35,6 +35,30 @@ export async function addToStash(input: {
   return { id: data.id }
 }
 
+export async function rateStashItem(
+  stashItemId: string,
+  rating: number | null,
+  reviewNotes?: string
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'You must be logged in.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+  const { error } = await db
+    .from('stash_items')
+    .update({ rating, review_notes: reviewNotes ?? null })
+    .eq('id', stashItemId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/stash')
+  return { success: true }
+}
+
 export async function updateStashItemStatus(
   stashItemId: string,
   status: 'owned' | 'wishlist' | 'bookmarked'

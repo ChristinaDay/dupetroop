@@ -117,3 +117,39 @@ export async function searchPolishes(q: string): Promise<PolishWithBrand[]> {
 
   return (data as unknown as PolishWithBrand[]) ?? []
 }
+
+export async function getPolishRatings(polishId: string): Promise<{
+  ownerRating: { avg: number; count: number } | null
+  externalRatings: import('@/lib/types/app.types').ExternalRating[]
+}> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const [stashResult, externalResult] = await Promise.all([
+    db
+      .from('stash_items')
+      .select('rating')
+      .eq('polish_id', polishId)
+      .eq('status', 'owned')
+      .not('rating', 'is', null),
+    db
+      .from('polish_external_ratings')
+      .select('*')
+      .eq('polish_id', polishId)
+      .order('review_count', { ascending: false, nullsFirst: false }),
+  ])
+
+  const ratings: { rating: number }[] = stashResult.data ?? []
+  const ownerRating = ratings.length > 0
+    ? {
+        avg: ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length,
+        count: ratings.length,
+      }
+    : null
+
+  return {
+    ownerRating,
+    externalRatings: externalResult.data ?? [],
+  }
+}
