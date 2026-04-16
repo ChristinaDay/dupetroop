@@ -796,6 +796,85 @@ New page at `src/app/profile/[username]/page.tsx`:
 
 ---
 
+## Session 14 — April 16, 2026
+
+### What was completed
+
+#### Homepage redesign wrap-up
+
+Fixed a dead link in the hero: the "Browse Looks" CTA pointed to `/looks` which has no index page (only `/looks/[lookId]` detail pages exist, consistent with the Session 8 decision to remove Looks as a standalone browse surface). Changed to "Browse Dupes" → `/dupes`.
+
+#### Stash icon button on browse cards
+
+Added a bookmark icon overlay to PolishCard grids throughout the app so logged-in users can stash any polish without navigating to its detail page.
+
+**New query: `getUserStashMap(userId)`** — returns `Record<polish_id, { id, status }>`, fetching only id/polish_id/status from stash_items. Lightweight enough to run on every browse page.
+
+**New component: `src/components/stash/StashIconButton.tsx`** — a `h-7 w-7` circular button using shadcn Popover:
+- Gray outline + opacity-0 when not stashed; fills primary + always visible when already stashed
+- Click opens popover: "Add as…" with Owned / Wishlist / Bookmarked options
+- If already stashed: "Move to…" with current status highlighted + Remove option
+- `e.stopPropagation()` / `e.preventDefault()` on click so it doesn't trigger the card's Link navigation
+
+Wired into:
+- `/polishes` browse grid
+- Homepage "New polishes" section
+- `/brands/[brandSlug]` polish grid
+
+All three pages now fetch the stash map server-side if a user is logged in and pass the data down, rendering the button as a wrapper div over each PolishCard (outside the Link's `overflow-hidden` context).
+
+#### Admin brand management UI
+
+Replaced the "manage via Supabase dashboard" placeholder at `/admin/brands` with a full CRUD flow.
+
+**`src/lib/actions/brand.actions.ts`** — `createBrand` and `updateBrand` server actions. Both verify the caller is admin/moderator, auto-generate a slug from the name if left blank, and return a friendly error message on unique constraint violations.
+
+**`src/components/admin/BrandForm.tsx`** — shared create/edit form: name, slug (editable, auto-generated if blank), description, website URL, logo URL with live preview, country of origin, price tier dropdown (1–5 with labels), indie + active checkboxes. Client component using `useTransition`.
+
+**`/admin/brands`** — lists all brands including inactive (dimmed), with logo thumbnail, slug/country/price tier inline, Edit and View buttons, and a "+ Add brand" header button.
+
+**`/admin/brands/new`** — create form page.
+
+**`/admin/brands/[brandId]/edit`** — edit form page, pre-populated from DB.
+
+#### Open Graph images
+
+Added `opengraph-image.tsx` files for the two highest-value pages. Both use `next/og`'s `ImageResponse` API and load Inter 900 from Google Fonts; font fetch failure degrades gracefully to system sans-serif.
+
+**Polish detail OG (1200×630):**
+- Left panel (380px): product image over hex swatch fallback (gradient for duochrome)
+- Right panel: brand name (small caps), polish name (large, font-size adaptive for long names), finish badge pill, dupe count, DupeTroop wordmark
+
+**Dupe comparison OG (1200×630):**
+- Full-bleed split screen: each polish fills one half (product image over swatch, dark gradient overlay for text legibility)
+- Brand + polish name at the bottom of each half
+- Floating "VS" pill at center with community score (emerald ≥4, amber ≥3, rose <3)
+- DupeTroop wordmark in top-right corner
+
+#### Data gaps — 5 brands added
+
+**Girly Bits** (Canadian indie) and **Wildflower Lacquer** (Oklahoma indie) added to `scripts/seed.js` brands array. Supernatural's website URL corrected to `supernaturallacquer.com`.
+
+**`scripts/seed-products.js`** updated with five new brand blocks:
+
+| Brand | Strategy | Polishes |
+|---|---|---|
+| Pahlish | Shopify `/collections/all/products.json` | Full catalog |
+| Supernatural | Manual curation (site blocked) | 10 |
+| Girly Bits | Manual curation (site 503) | 11 |
+| Wildflower Lacquer | Manual curation (API blocked) | 10 |
+| Sally Hansen | Manual curation (corporate CMS) | 11 |
+
+**Migrations 010 and 011** were run in Supabase — three-dimension polish ratings and opinion reports tables are now live.
+
+### Still to do (nice-to-haves)
+
+- [ ] Email notifications when a submitted dupe/polish is approved or rejected
+- [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
+- [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
+
+---
+
 ## How to Run Locally
 
 ```bash
