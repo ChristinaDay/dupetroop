@@ -230,6 +230,126 @@ Investigated and built a two-stage solution:
 
 ---
 
+## Session 4 — April 15, 2026
+
+### What was completed
+
+#### Image backfill — major expansion
+
+Pushed further on images after Session 3 left ~43 polishes with images. Fully investigated each brand's URL structure and rewrote `scripts/backfill-images.js` and `scripts/seed-products.js`.
+
+**Findings per brand:**
+- **OPI** — confirmed Shopify store; product pages live at `/products/nail-lacquer-{slug}` and return `og:image`. Collections API blocked but individual HTML works fine.
+- **Cirque Colors** — Shopify API wide open via `/collections/all/products.json`. Placeholder polish names ("Duchess", "Retrograde", etc.) simply didn't exist in their catalog — old seed data was invented. Fixed by live-fetching.
+- **Rogue Lacquer** — same situation, same fix. Best-sellers collection is open.
+- **KBShimmer** — Cloudflare 403 on all requests, including homepage. Completely blocked.
+- **ILNP** — custom SPA (Vue/Inertia.js + WooCommerce). Product URLs are long descriptive slugs (e.g. `/eclipse-black-to-red-ultra-chrome-nail-polish/`) — not guessable from short names. REST API returns 401. Blocked.
+- **Glisten & Glow** — domain returns 404, site appears taken down.
+- **Different Dimension** — returns a holding page with no `og:image`.
+- **Zoya** — Magento platform, no collections API, all paths 404.
+- **Essie** — product URLs follow `/nail-polish/{color-category}/{slug}` (e.g. `/nail-polish/pinks/ballet-slippers`). Category segment varies per shade and isn't derivable from our data without a lookup table.
+
+**Changes made:**
+
+`scripts/backfill-images.js` rewritten with three strategies:
+- `shopify-bulk` — fetches entire catalog via `/collections/{collection}/products.json` (paginated), builds normalized name→image map, matches DB polishes by name. Sidesteps slug-guessing entirely. Used for Holo Taco, Mooncat, Cirque, Rogue.
+- `shopify-json` — per-product `/products/{handle}.json` fallback.
+- `html` — og:image scraping from product page HTML. Now also checks `twitter:image`. Supports `productPaths[]` array tried in order, plus `handlePrefix` for brands like OPI that prepend a type to the slug.
+- `product_url` field in DB is tried first for any polish that has one stored.
+
+`scripts/seed-products.js` updated:
+- Cirque Colors and Rogue Lacquer moved from manual entries to live Shopify fetches.
+- Cirque uses `/collections/all` (their `nail-polish` collection is empty).
+- Rogue uses `/collections/best-sellers`.
+
+**DB cleanup:**
+- Deleted 17 placeholder polishes with no real-world counterpart (Peacock, Blue Moon, Candy Cane, Mermaid Toast, Selkie, Void, Duchess, Retrograde, Crystallize, Forest Bathing, Ultraviolet, Verdant, Galaxy Brain, Shift Happens, The Blues, Burn It Down, Night Howler).
+- Deleted 5 seed dupes that referenced those placeholders.
+
+**Final image coverage: 76/111 polishes (68%)**
+
+| Brand | Coverage |
+|---|---|
+| Holo Taco | 20/20 ✓ |
+| Mooncat | 24/24 ✓ |
+| Cirque Colors | 15/15 ✓ |
+| Rogue Lacquer | 8/8 ✓ |
+| OPI | 9/9 ✓ |
+| KBShimmer | 0/7 (Cloudflare blocked) |
+| ILNP | 0/7 (SPA, locked API) |
+| Essie | 0/8 (category-keyed URLs) |
+| Zoya | 0/7 (Magento, no API) |
+| Glisten & Glow | 0/4 (site down) |
+| Different Dimension | 0/2 (holding page) |
+
+### Still to do (updated priority order)
+1. Polish submission form for community members (`/polishes/submit`)
+2. Fix `increment_dupe_count` RPC
+3. Profile edit page
+4. Supabase Storage setup (buckets + RLS + image upload UI)
+5. Vercel deployment
+6. ~~Open PR for `feat/image-backfill` branch and merge~~ ✓ done — see Session 5
+
+---
+
+## Session 5 — April 15, 2026
+
+### What was completed
+
+#### Image backfill — full coverage push (98%)
+
+Solved the remaining 5 blocked brands by investigating each platform's actual data access patterns:
+
+**KBShimmer** — Playwright headless Chromium bypasses Cloudflare's JS challenge. Scraped `/nail-polish/` catalog page using `.catalog-product` selectors. Key fix: product image `src` attributes are relative paths — absolutized to `https://www.kbshimmer.com/{src}`. Old DB slugs were discontinued products; replaced with live catalog fetch in `seed-products.js`.
+
+**ILNP** — WooCommerce Store API (`/wp-json/wc/store/v1/products`) is public when called with a browser User-Agent. Fetched across two product categories (`boutique-effect-nail-polish`, `studio-color-nail-polish`) with pagination. No Playwright needed.
+
+**Essie** — Sitecore CMS renders pages client-side (JS-required). Solution: parsed their public sitemap (`a82962.sitemaphosting.com/3956201/sitemap.xml`) to build a slug→URL map (covering both `/nail-polish` and `/nail-care` sections), then used Playwright to render each product page and extract the product image by alt-text match.
+
+**Zoya** — Products live on `artofbeauty.com` (Magento). Parsed `zoya.com/sitemap_zoya.xml` (percent-encoded URLs, ZP code prefix stripped), then plain-fetched `og:image` from each artofbeauty product page — no JS rendering needed.
+
+**Glisten & Glow** — Site came back up on `www.glistenandglow.com` (BigCartel platform). Homepage lists all products; `og:image` accessible in raw HTML. Fixed domain in config from bare `glistenandglow.com` (which 404s) to `www.glistenandglow.com`.
+
+**Different Dimension** — Confirmed dead end. Site is a holding page; only `/lander` in their sitemap. No product pages exist.
+
+**Bug fix — `manual()` image overwrite:** The `manual()` helper in `seed-products.js` included `images: []` in its defaults, which caused Supabase upsert to overwrite backfilled image arrays with empty arrays on re-seed. Fixed by removing `images` from the default payload entirely — omitting a field on upsert conflict preserves the existing DB value.
+
+**New strategies added to `backfill-images.js`:**
+- `woocommerce-api` — paginated WooCommerce Store API with browser UA
+- `browser` — Playwright catalog scrape with configurable CSS selectors
+- `essie` — sitemap parse + browser product page image extraction
+- `zoya` — sitemap parse + plain og:image fetch from artofbeauty.com
+
+**New fetchers added to `seed-products.js`:**
+- `fetchKBShimmerCatalog()` — Playwright browser scrape
+- `fetchILNPProducts()` — WooCommerce Store API
+- `fetchGlistenAndGlow()` — BigCartel homepage scrape
+
+**Final image coverage: 169/173 polishes (98%)**
+
+| Brand | Coverage |
+|---|---|
+| Holo Taco | 20/20 ✓ |
+| Mooncat | 24/24 ✓ |
+| Cirque Colors | 15/15 ✓ |
+| Rogue Lacquer | 8/8 ✓ |
+| OPI | 9/9 ✓ |
+| KBShimmer | 7/7 ✓ |
+| ILNP | 7/7 ✓ |
+| Essie | 8/8 ✓ |
+| Zoya | 7/7 ✓ |
+| Glisten & Glow | 4/4 ✓ |
+| Different Dimension | 0/2 (holding page — no products online) |
+
+### Still to do (updated priority order)
+1. Polish submission form for community members (`/polishes/submit`)
+2. Fix `increment_dupe_count` RPC
+3. Profile edit page
+4. Supabase Storage setup (buckets + RLS + image upload UI)
+5. Vercel deployment
+
+---
+
 ## How to Run Locally
 
 ```bash
