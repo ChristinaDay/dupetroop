@@ -742,8 +742,54 @@ Ran `backfill-images.js` after seeding — 2,176/2,180 polishes have images (99.
 
 ### Still to do (next priorities)
 
-- [ ] Polish detail page: recipe section redesign — surface full component alternatives matrix, fold `/looks/[lookId]` into the page
-- [ ] Profile page for other users (`/profile/[username]`)
+- [x] Polish detail page: recipe section redesign — surface full component alternatives matrix ✓ done — see Session 13
+- [x] Profile page for other users (`/profile/[username]`) ✓ done — see Session 13
+- [ ] "Report" button on opinions for moderation
+- [ ] Brand management UI in admin
+- [ ] Open Graph images for polish/dupe pages
+
+---
+
+## Session 13 — April 16, 2026
+
+### What was completed
+
+#### Combination recipes section redesign — full alternatives matrix
+
+Replaced the previous `LookCard` grid (which only showed the recipe header and target polish) with a full `RecipeCard` component that exposes the entire ingredient matrix inline on the polish detail page.
+
+**`src/components/look/RecipeCard.tsx`** — new component:
+- `PolishRow` — a polish entry: swatch circle, brand, name, finish badge, price; links to the polish detail page
+- `RecipeStep` — one step in the recipe. Shows role label (Base / Topper / Glitter Topper / Accent / Step) + optional notes, canonical polish, then all known swap alternatives indented under it with an `or` label and a left border connector
+- `RecipeCard` — the full recipe card. Header: source badge + recipe name + external link icon. Body: ordered steps. Footer: description text if present.
+
+**`src/lib/queries/looks.ts`** — new `getLooksWithComponentsForPolish()`:
+- Fetches all approved looks where `target_polish_id` matches OR this polish appears as a `look_component`
+- Collects all unique component polish IDs across all looks
+- Single batch query for all approved dupes touching those polish IDs (avoids N+1)
+- Builds `altMap: Map<string, PolishWithBrand[]>` — every polish → its known swap alternatives
+- Assembles `LookWithFullComponents[]` with alternatives injected per component
+
+**Why this approach:** The original `LookCard` showed a recipe as a black-box card — users could see "this look exists" but had to navigate to a separate page to see the ingredients. The redesign makes the matrix visible directly on the polish detail page, which is the right organizing unit. A user on the Mooncat Bloodbender page can now see "House of Hades + Scorchy, or Casa de Heaven + Scorchy" without any extra navigation.
+
+**Polish detail page** — replaced `getLooksForPolish` + `LookCard` with `getLooksWithComponentsForPolish` + `RecipeCard` throughout. The combination recipes section is now always visible (with an appropriate empty state) regardless of whether any recipes exist.
+
+#### Bloodbender example swap
+
+Created the real-world swap from the product vision: **Casa de Heaven ↔ House of Hades**. This is the canonical example the entire dupe system was designed around — an indie brand dupe that the r/lacqueristas community considers *better* than the original (smoother formula, lower price). Both polishes are Mooncat; the swap demonstrates that dupes don't always mean cheaper/worse.
+
+#### Public profile page (`/profile/[username]`)
+
+New page at `src/app/profile/[username]/page.tsx`:
+- 404 if username not found in profiles table
+- **Header** — avatar (AvatarImage + AvatarFallback with initials), display name, `@username`, bio
+- **Stats grid** (4 cells) — Swaps submitted / Polishes submitted / Polishes owned / Collection value. Polishes owned and collection value are computed from `stash_items` at render time (owned-status items only; value sums `msrp_usd`).
+- **Wishlist teaser** — shown below stats when user has wishlist items: "* Some prices unknown · N on wishlist"
+- **Submitted swaps** — up to 6 recent approved dupes rendered as `DupeCard` in a 2-column grid. "Showing 6 of N" note when there are more than 6.
+- **Empty state** — shown when the user has no approved swaps; includes a link to submit one.
+
+### Still to do (next priorities)
+
 - [ ] "Report" button on opinions for moderation
 - [ ] Brand management UI in admin
 - [ ] Open Graph images for polish/dupe pages
