@@ -153,6 +153,70 @@ function shopifyProductToPolish(product, brandId, msrp) {
   }
 }
 
+// ─── Fetch from WooCommerce Store API (ILNP) ─────────────────────────────────
+
+const WOO_FINISH_MAP = {
+  magnetic: 'magnetic', multichrome: 'multichrome', duochrome: 'duochrome',
+  holographic: 'holo', holo: 'holo', glitter: 'glitter', shimmer: 'shimmer',
+  flakies: 'flakies', flakie: 'flakies', jelly: 'jelly', matte: 'matte',
+  satin: 'satin', cream: 'cream', creme: 'cream', topper: 'topper',
+}
+
+function parseWooTags(tags = []) {
+  const tagNames = tags.map(t => (t.name ?? t).toLowerCase())
+  const finishOrder = ['magnetic', 'multichrome', 'duochrome', 'flakies', 'flakie', 'glitter',
+    'holographic', 'holo', 'shimmer', 'jelly', 'matte', 'satin', 'cream', 'creme', 'topper']
+  for (const f of finishOrder) {
+    if (tagNames.some(t => t.includes(f))) return WOO_FINISH_MAP[f] ?? 'other'
+  }
+  return 'other'
+}
+
+async function fetchILNPProducts(brandId, categories, limitPerCategory = 15) {
+  const results = []
+  const seen = new Set()
+  const headers = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' }
+
+  for (const category of categories) {
+    let page = 1
+    let fetched = 0
+
+    while (fetched < limitPerCategory) {
+      const url = `https://www.ilnp.com/wp-json/wc/store/v1/products?per_page=100&page=${page}&category=${category}`
+      const res = await fetch(url, { headers })
+      if (!res.ok) break
+      const products = await res.json()
+      if (!products.length) break
+
+      for (const p of products) {
+        if (fetched >= limitPerCategory) break
+        if (seen.has(p.id)) continue
+        seen.add(p.id)
+
+        const image = p.images?.[0]?.src ?? null
+        const finish = parseWooTags(p.tags ?? [])
+        results.push({
+          brand_id: brandId,
+          name: p.name,
+          slug: p.slug,
+          hex_color: '#888888',
+          finish_category: finish,
+          color_family: 'neutral',
+          msrp_usd: parseFloat(p.prices?.price ?? '1100') / 100 || 11,
+          is_verified: true,
+          is_limited: false,
+          images: image ? [image] : [],
+        })
+        fetched++
+      }
+
+      if (products.length < 100) break
+      page++
+    }
+  }
+  return results
+}
+
 // ─── Fetch from a custom storefront using a real browser ─────────────────────
 
 const BUNDLE_KEYWORDS_LOWER = BUNDLE_KEYWORDS.map(k => k.toLowerCase())
@@ -296,16 +360,19 @@ async function run() {
     console.error('  Error:', e.message)
   }
 
-  // ── ILNP (manual) ───────────────────────────────────────────────────────────
-  console.log('Adding ILNP...')
-  allPolishes.push(...manual(brandId['ilnp'], [
-    { name: 'Ultra Chrome Flakies', slug: 'ultra-chrome-flakies', hex_color: '#E0E0E8', finish_category: 'flakies',    color_family: 'neutral', msrp_usd: 10 },
-    { name: 'Starstruck',           slug: 'starstruck',           hex_color: '#C0A8E0', finish_category: 'holo',        color_family: 'purple',  msrp_usd: 10 },
-    { name: 'Ruby Ruby',            slug: 'ruby-ruby',            hex_color: '#C02030', finish_category: 'shimmer',     color_family: 'red',     msrp_usd: 10 },
-    { name: 'Astronomer',           slug: 'astronomer',           hex_color: '#2A3A8A', finish_category: 'multichrome', color_family: 'blue',    msrp_usd: 10 },
-    { name: 'Supercell',            slug: 'supercell',            hex_color: '#4A2A8A', finish_category: 'holo',        color_family: 'purple',  msrp_usd: 10 },
-    { name: 'Reverie',              slug: 'reverie',              hex_color: '#C8A8B8', finish_category: 'shimmer',     color_family: 'pink',    msrp_usd: 10 },
-  ]))
+  // ── ILNP (WooCommerce Store API — public, no auth) ──────────────────────────
+  console.log('Fetching ILNP products via WooCommerce API...')
+  try {
+    const ilnpPolishes = await fetchILNPProducts(
+      brandId['ilnp'],
+      ['boutique-effect-nail-polish', 'studio-color-nail-polish'],
+      15
+    )
+    console.log(`  ${ilnpPolishes.length} products (${ilnpPolishes.filter(p => p.images?.length).length} with images)`)
+    allPolishes.push(...ilnpPolishes)
+  } catch (e) {
+    console.error('  Error:', e.message)
+  }
 
   // ── Glisten & Glow (manual) ─────────────────────────────────────────────────
   console.log('Adding Glisten & Glow...')

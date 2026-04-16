@@ -76,11 +76,13 @@ const BRAND_CONFIG = {
   'rogue-lacquer':{ domain: 'roguelacquer.com',  strategy: 'shopify-bulk', collection: 'all' },
   'zoya':         { domain: 'www.zoya.com',      strategy: 'shopify-bulk', collection: 'all' },
 
-  // ── Shopify but with locked JSON API → HTML og:image fallback ───────────────
+  // ── WooCommerce Store API (public, no auth) ────────────────────────────────
+  // Fetches /wp-json/wc/store/v1/products with browser UA — no browser needed.
+  // categories: array of category slugs to fetch from (in order).
   'ilnp': {
     domain: 'www.ilnp.com',
-    strategy: 'html',
-    productPaths: ['/products/{slug}'],
+    strategy: 'woocommerce-api',
+    categories: ['boutique-effect-nail-polish', 'studio-color-nail-polish'],
   },
 
   // ── Custom PHP storefront behind Cloudflare JS challenge — real browser ──────
@@ -216,6 +218,58 @@ async function fetchShopifyBulk(domain, collection = 'all') {
     if (products.length < limit) break // last page
     page++
     await sleep(REQUEST_DELAY)
+  }
+
+  return nameToImage
+}
+
+// ─── Strategy: WooCommerce Store API ─────────────────────────────────────────
+//
+// Fetches /wp-json/wc/store/v1/products — public endpoint, no auth needed,
+// but requires browser-like User-Agent. Handles pagination via Link header.
+// Returns a Map of normalizedName → imageUrl across all specified categories.
+//
+
+async function fetchWooCommerceApi(domain, categories = []) {
+  const nameToImage = new Map()
+  const perPage = 100
+
+  const categoriesToFetch = categories.length > 0 ? categories : ['']
+
+  for (const category of categoriesToFetch) {
+    let pageNum = 1
+
+    while (true) {
+      const params = new URLSearchParams({ per_page: perPage, page: pageNum })
+      if (category) params.set('category', category)
+      const url = `https://${domain}/wp-json/wc/store/v1/products?${params}`
+      console.log(`    Fetching ${url}`)
+
+      const res = await fetch(url, { headers: BROWSER_HEADERS })
+      if (!res.ok) {
+        console.log(`    HTTP ${res.status} — stopping`)
+        break
+      }
+
+      let products
+      try { products = await res.json() } catch {
+        console.log(`    JSON parse error`)
+        break
+      }
+
+      if (!products.length) break
+
+      for (const p of products) {
+        const image = p.images?.[0]?.src ?? null
+        if (image) nameToImage.set(normalizeName(p.name), image)
+      }
+
+      console.log(`    Page ${pageNum}: ${products.length} products (${nameToImage.size} total with images)`)
+
+      if (products.length < perPage) break
+      pageNum++
+      await sleep(REQUEST_DELAY)
+    }
   }
 
   return nameToImage
@@ -513,6 +567,51 @@ async function run() {
 
         // Try name match first, then handle match
         const image = nameToImage.get(normalizedName) ?? nameToImage.get(`__handle__${handle}`) ?? null
+
+        if (image) {
+          console.log(`  ✓  ${polish.name}`)
+          console.log(`       ${image}`)
+          stats.matched++
+          if (!DRY_RUN) {
+            const { error: updateError } = await supabase
+              .from('polishes')
+              .update({ images: [image] })
+              .eq('id', polish.id)
+            if (updateError) {
+              console.error(`       ⚠  Write failed: ${updateError.message}`)
+              stats.errors++
+            }
+          }
+        } else {
+          console.log(`  ✗  ${polish.name} — no catalog match (normalized: "${normalizedName}")`)
+          stats.skipped++
+        }
+      }
+    }
+
+    // ── woocommerce-api: WooCommerce Store API (public, browser UA only) ─────────
+    else if (config.strategy === 'woocommerce-api') {
+      console.log(`  Fetching WooCommerce catalog from ${config.domain}...`)
+      let nameToImage
+      try {
+        nameToImage = await fetchWooCommerceApi(config.domain, config.categories ?? [])
+      } catch (e) {
+        console.log(`  ✗ API fetch failed: ${e.message}`)
+        stats.offline += needsImage.length
+        continue
+      }
+
+      if (nameToImage.size === 0) {
+        console.log(`  ✗ No products returned`)
+        stats.offline += needsImage.length
+        continue
+      }
+
+      console.log(`  Catalog loaded: ${nameToImage.size} entries. Matching polishes...`)
+
+      for (const polish of needsImage) {
+        const normalizedName = normalizeName(polish.name)
+        const image = nameToImage.get(normalizedName) ?? null
 
         if (image) {
           console.log(`  ✓  ${polish.name}`)
