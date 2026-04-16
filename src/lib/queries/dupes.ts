@@ -61,6 +61,20 @@ export async function getDupeById(id: string): Promise<DupeWithPolishes | null> 
   return data as unknown as DupeWithPolishes | null
 }
 
+export async function getRelatedDupes(dupeId: string, polishAId: string, polishBId: string, limit = 6): Promise<DupeWithPolishes[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('dupes')
+    .select(DUPE_SELECT)
+    .eq('status', 'approved')
+    .neq('id', dupeId)
+    .or(`polish_a_id.eq.${polishAId},polish_b_id.eq.${polishAId},polish_a_id.eq.${polishBId},polish_b_id.eq.${polishBId}`)
+    .order('avg_overall', { ascending: false, nullsFirst: false })
+    .limit(limit)
+
+  return (data as unknown as DupeWithPolishes[]) ?? []
+}
+
 export async function getDupesForPolish(polishId: string): Promise<DupeWithPolishes[]> {
   const supabase = await createClient()
   const { data } = await supabase

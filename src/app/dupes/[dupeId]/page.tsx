@@ -1,17 +1,15 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { getDupeById } from '@/lib/queries/dupes'
+import { getDupeById, getRelatedDupes } from '@/lib/queries/dupes'
 import { getOpinionsForDupe, getUserOpinionForDupe } from '@/lib/queries/opinions'
 import { createClient } from '@/lib/supabase/server'
-import { PolishSwatch } from '@/components/polish/PolishSwatch'
-import { PolishBadge } from '@/components/polish/PolishBadge'
-import { AccuracyScorebar } from '@/components/dupe/AccuracyScorebar'
+import { DupePolishColumn } from '@/components/dupe/DupePolishColumn'
+import { DupeCard } from '@/components/dupe/DupeCard'
 import { OpinionCard } from '@/components/opinion/OpinionCard'
 import { OpinionForm } from '@/components/opinion/OpinionForm'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { formatPrice, formatScore } from '@/lib/utils/format'
+import { formatScore } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
 
 interface PageProps {
@@ -28,11 +26,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-function overallColor(score: number | null) {
-  if (!score) return 'text-muted-foreground'
-  if (score >= 4) return 'text-emerald-600'
-  if (score >= 3) return 'text-amber-600'
-  return 'text-rose-600'
+function ScorePill({ label, score }: { label: string; score: number | null }) {
+  const color = score === null
+    ? 'text-muted-foreground'
+    : score >= 4
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : score >= 3
+        ? 'text-amber-600 dark:text-amber-400'
+        : 'text-rose-600 dark:text-rose-400'
+
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className={cn('text-xl font-black tabular-nums', color)}>
+        {score !== null ? formatScore(score) : '—'}
+      </span>
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{label}</span>
+    </div>
+  )
 }
 
 export default async function DupeDetailPage({ params }: PageProps) {
@@ -49,6 +59,8 @@ export default async function DupeDetailPage({ params }: PageProps) {
 
   if (!dupe || dupe.status !== 'approved') notFound()
 
+  const relatedDupes = await getRelatedDupes(dupeId, dupe.polish_a_id, dupe.polish_b_id, 6)
+
   const a = dupe.polish_a
   const b = dupe.polish_b
 
@@ -61,74 +73,51 @@ export default async function DupeDetailPage({ params }: PageProps) {
         <span className="text-foreground font-medium">{a.name} × {b.name}</span>
       </nav>
 
-      {/* Side-by-side comparison */}
-      <div className="grid grid-cols-2 gap-6 mb-10">
-        {[a, b].map((polish, idx) => (
-          <div key={polish.id} className="text-center space-y-3">
-            <div className="flex justify-center">
-              <PolishSwatch
-                hexColor={polish.hex_color}
-                hexSecondary={polish.hex_secondary}
-                imageUrl={polish.images?.[0] ?? null}
-                size="xl"
-              />
-            </div>
-            <div>
-              {idx === 0 && (
-                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Original</span>
-              )}
-              {idx === 1 && (
-                <span className="text-xs font-bold uppercase tracking-widest text-primary">Dupe</span>
-              )}
-              <Link href={`/brands/${polish.brand.slug}`}>
-                <p className="text-sm text-muted-foreground hover:text-primary transition-colors">{polish.brand.name}</p>
-              </Link>
-              <Link href={`/polishes/${polish.brand.slug}/${polish.slug}`}>
-                <h2 className="text-lg font-black hover:text-primary transition-colors">{polish.name}</h2>
-              </Link>
-              <div className="flex justify-center mt-1">
-                <PolishBadge finish={polish.finish_category} />
-              </div>
-              {polish.msrp_usd && (
-                <p className="text-sm text-muted-foreground mt-1">{formatPrice(polish.msrp_usd)}</p>
-              )}
-            </div>
-          </div>
-        ))}
+      {/* Split gallery hero */}
+      <div className="grid grid-cols-2 gap-4 sm:gap-8 mb-10">
+        <DupePolishColumn polish={a} role="original" />
+        <DupePolishColumn polish={b} role="dupe" />
       </div>
 
-      {/* Aggregate accuracy scores */}
-      <div className="border border-border rounded-xl p-6 mb-10 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-black">Community accuracy</h2>
-          <div className="text-center">
-            <p className={cn('text-3xl font-black tabular-nums', overallColor(dupe.avg_overall))}>
+      {/* Lightweight score strip */}
+      <div className="border-y border-border py-6 mb-10">
+        <div className="flex items-center justify-around">
+          <ScorePill label="Color" score={dupe.avg_color_accuracy} />
+          <div className="h-8 w-px bg-border" />
+          <ScorePill label="Finish" score={dupe.avg_finish_accuracy} />
+          <div className="h-8 w-px bg-border" />
+          <ScorePill label="Formula" score={dupe.avg_formula_accuracy} />
+          <div className="h-8 w-px bg-border" />
+          <div className="flex flex-col items-center gap-0.5">
+            <span className={cn(
+              'text-xl font-black tabular-nums',
+              dupe.avg_overall === null ? 'text-muted-foreground' : dupe.avg_overall >= 4 ? 'text-emerald-600 dark:text-emerald-400' : dupe.avg_overall >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
+            )}>
               {dupe.avg_overall !== null ? formatScore(dupe.avg_overall) : '—'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {dupe.opinion_count} rating{dupe.opinion_count !== 1 ? 's' : ''}
-            </p>
+            </span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Overall</span>
           </div>
         </div>
-        <Separator />
-        <div className="space-y-3">
-          <AccuracyScorebar label="Color accuracy" score={dupe.avg_color_accuracy} count={dupe.opinion_count} />
-          <AccuracyScorebar label="Finish accuracy" score={dupe.avg_finish_accuracy} count={dupe.opinion_count} />
-          <AccuracyScorebar label="Formula accuracy" score={dupe.avg_formula_accuracy} count={dupe.opinion_count} />
-        </div>
+        {dupe.opinion_count > 0 && (
+          <p className="text-center text-xs text-muted-foreground mt-3">
+            Based on {dupe.opinion_count} {dupe.opinion_count === 1 ? 'opinion' : 'opinions'}
+          </p>
+        )}
         {dupe.notes && (
-          <>
-            <Separator />
-            <p className="text-sm italic text-muted-foreground">&ldquo;{dupe.notes}&rdquo;</p>
-          </>
+          <p className="text-center text-sm italic text-muted-foreground mt-3 max-w-md mx-auto">
+            &ldquo;{dupe.notes}&rdquo;
+          </p>
         )}
       </div>
 
       {/* Opinion form */}
       <div className="mb-10">
-        <h2 className="text-xl font-black mb-4">
-          {userOpinion ? 'Your rating' : 'Rate this dupe'}
+        <h2 className="text-xl font-black mb-1">
+          {userOpinion ? 'Your rating' : 'Have you tried both?'}
         </h2>
+        {!userOpinion && (
+          <p className="text-sm text-muted-foreground mb-4">Share your take on how well this dupe holds up.</p>
+        )}
         {user ? (
           <div className="border border-border rounded-xl p-6">
             <OpinionForm dupeId={dupeId} existingOpinion={userOpinion} />
@@ -144,7 +133,7 @@ export default async function DupeDetailPage({ params }: PageProps) {
       </div>
 
       {/* Community opinions */}
-      <div>
+      <div className="mb-16">
         <h2 className="text-xl font-black mb-4">
           Community opinions
           {opinions.length > 0 && (
@@ -166,6 +155,20 @@ export default async function DupeDetailPage({ params }: PageProps) {
           <p className="text-muted-foreground text-sm">No opinions yet. Be the first!</p>
         )}
       </div>
+
+      {/* Related dupes */}
+      {relatedDupes.length > 0 && (
+        <div className="border-t border-border pt-10">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">
+            More dupes to explore
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {relatedDupes.map(related => (
+              <DupeCard key={related.id} dupe={related} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
