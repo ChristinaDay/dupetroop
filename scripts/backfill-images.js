@@ -122,10 +122,15 @@ const BRAND_CONFIG = {
       '/products/nail-lacquer-{slug}',
     ],
   },
-  // ── Essie — platform unclear, product URLs use /nail-polish/{category}/{slug} ─
-  // Category path varies per shade (reds, pinks, purples, etc.) — not guessable.
-  // Skipping until we can map shade → category, or find a bulk endpoint.
-  // 'essie': { ... },
+  // ── Essie — Sitecore CMS, no og:image in raw HTML, JS-rendered product images ─
+  // Strategy: parse their public sitemap to resolve slug → full URL (which includes
+  // the color-category segment we can't guess), then load each page with a real
+  // browser and grab the product img by alt-text match.
+  'essie': {
+    domain: 'www.essie.com',
+    strategy: 'essie',
+    sitemapUrl: 'https://a82962.sitemaphosting.com/3956201/sitemap.xml',
+  },
 }
 
 // ─── Shared fetch headers ─────────────────────────────────────────────────────
@@ -273,6 +278,40 @@ async function fetchWooCommerceApi(domain, categories = []) {
   }
 
   return nameToImage
+}
+
+// ─── Strategy: Essie (Sitecore CMS) ──────────────────────────────────────────
+//
+// 1. Fetch Essie's public sitemap to build slug → full product URL map.
+//    (Full URL includes the color-category segment we can't guess otherwise.)
+// 2. For each polish, load the product page in a real browser and extract the
+//    product image by matching alt text to the polish name.
+//
+
+async function fetchEssieSitemapMap(sitemapUrl) {
+  const res = await fetch(sitemapUrl, { headers: BROWSER_HEADERS })
+  if (!res.ok) throw new Error(`Sitemap fetch failed: HTTP ${res.status}`)
+  const text = await res.text()
+  const slugToUrl = {}
+  // Include both nail-polish and nail-care pages (top coats, treatments live there)
+  for (const [, url] of text.matchAll(/<loc>(https:\/\/www\.essie\.com\/(?:nail-polish|nail-care)\/[^<]+)<\/loc>/g)) {
+    const slug = url.split('/').filter(Boolean).pop()
+    // Don't overwrite nail-polish entries with nail-care ones if both exist
+    if (!slugToUrl[slug]) slugToUrl[slug] = url
+  }
+  return slugToUrl
+}
+
+async function fetchEssieProductImage(page, url, polishName) {
+  const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+  if (!response?.ok()) return null
+  const nameLower = polishName.toLowerCase()
+  return page.evaluate((nameLower) => {
+    const imgs = [...document.querySelectorAll('img')]
+    const match = imgs.find(i => i.alt?.toLowerCase().includes(nameLower) && i.src.includes('-/media'))
+      ?? imgs.find(i => i.src.includes('new-pdp-image') || i.src.includes('products_nailpolish'))
+    return match?.src ?? null
+  }, nameLower)
 }
 
 // ─── Strategy: Shopify per-product JSON ───────────────────────────────────────
@@ -681,6 +720,68 @@ async function run() {
           console.log(`  ✗  ${polish.name} — no image found`)
           stats.skipped++
         }
+      }
+    }
+
+    // ── essie: sitemap slug→URL lookup + browser product image extraction ────────
+    else if (config.strategy === 'essie') {
+      console.log(`  Building URL map from sitemap...`)
+      let slugToUrl
+      try {
+        slugToUrl = await fetchEssieSitemapMap(config.sitemapUrl)
+      } catch (e) {
+        console.log(`  ✗ Sitemap fetch failed: ${e.message}`)
+        stats.offline += needsImage.length
+        continue
+      }
+      console.log(`  Sitemap loaded: ${Object.keys(slugToUrl).length} product URLs`)
+
+      const browser = await getBrowser()
+      const context = await browser.newContext({
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        locale: 'en-US',
+      })
+      const page = await context.newPage()
+
+      try {
+        for (const polish of needsImage) {
+          console.log(`\n  • ${polish.name}`)
+          const url = slugToUrl[polish.slug] ?? null
+          if (!url) {
+            console.log(`    ✗ slug "${polish.slug}" not in sitemap`)
+            stats.skipped++
+            continue
+          }
+
+          console.log(`    → ${url}`)
+          await sleep(REQUEST_DELAY)
+          let image = null
+          try {
+            image = await fetchEssieProductImage(page, url, polish.name)
+          } catch (e) {
+            console.log(`    ✗ ${e.message}`)
+          }
+
+          if (image) {
+            console.log(`    ✓ ${image}`)
+            stats.matched++
+            if (!DRY_RUN) {
+              const { error: updateError } = await supabase
+                .from('polishes')
+                .update({ images: [image] })
+                .eq('id', polish.id)
+              if (updateError) {
+                console.error(`    ⚠  Write failed: ${updateError.message}`)
+                stats.errors++
+              }
+            }
+          } else {
+            console.log(`    ✗ No product image found on page`)
+            stats.skipped++
+          }
+        }
+      } finally {
+        await context.close()
       }
     }
 
