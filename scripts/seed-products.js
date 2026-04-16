@@ -468,6 +468,73 @@ async function run() {
     } catch (e) { console.error('\n  Error:', e.message) }
   }
 
+  // ── Pahlish (Shopify API) ─────────────────────────────────────────────────────
+  if (should('pahlish')) {
+    process.stdout.write('Fetching Pahlish (full catalog)... ')
+    try {
+      const products = await fetchShopifyAllProducts('pahlish.com')
+      const polishes = products.map(p => shopifyProductToPolish(p, brandId['pahlish'], 13))
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
+  // ── Supernatural (manual — site blocked) ──────────────────────────────────────
+  if (should('supernatural')) {
+    console.log('Adding Supernatural (manual)...')
+    const polishes = manual(brandId['supernatural'], [
+      { name: "What's This?",           slug: 'whats-this',               hex_color: '#1A2060', hex_secondary: '#B84090', finish_category: 'multichrome', color_family: 'blue',    msrp_usd: 13 },
+      { name: 'Foxglove',               slug: 'foxglove',                 hex_color: '#7B4B8A',                           finish_category: 'multichrome', color_family: 'purple',  msrp_usd: 13 },
+      { name: 'Soul in the Sky',        slug: 'soul-in-the-sky',          hex_color: '#1A1878', hex_secondary: '#B83020', finish_category: 'multichrome', color_family: 'blue',    msrp_usd: 13 },
+      { name: 'Kyber Crystal',          slug: 'kyber-crystal',            hex_color: '#E8E0DC',                           finish_category: 'holo',        color_family: 'neutral', msrp_usd: 13 },
+      { name: 'Duel On Mustafar',       slug: 'duel-on-mustafar',         hex_color: '#0A0A0A', hex_secondary: '#C05020', finish_category: 'multichrome', color_family: 'black',   msrp_usd: 13 },
+      { name: 'Yggdrasil',              slug: 'yggdrasil',                hex_color: '#4A5020',                           finish_category: 'multichrome', color_family: 'green',   msrp_usd: 13, is_limited: true },
+      { name: '5th Gen Console Freak',  slug: '5th-gen-console-freak',    hex_color: '#787878', hex_secondary: '#9040B0', finish_category: 'multichrome', color_family: 'neutral', msrp_usd: 13 },
+      { name: 'Poison',                 slug: 'poison',                   hex_color: '#8B1020',                           finish_category: 'magnetic',    color_family: 'red',     msrp_usd: 13 },
+      { name: 'Venom',                  slug: 'venom',                    hex_color: '#2A4018',                           finish_category: 'magnetic',    color_family: 'green',   msrp_usd: 13 },
+      { name: 'Chromosphere',           slug: 'chromosphere',             hex_color: '#B03060', hex_secondary: '#C07020', finish_category: 'holo',        color_family: 'pink',    msrp_usd: 13 },
+    ])
+    if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+  }
+
+  // ── Girly Bits (manual — site protected) ──────────────────────────────────────
+  if (should('girly-bits')) {
+    console.log('Adding Girly Bits (manual)...')
+    const polishes = manual(brandId['girly-bits'], [
+      { name: 'Very Important Polish',                     slug: 'very-important-polish',                   hex_color: '#1A0820', hex_secondary: '#C05080', finish_category: 'multichrome', color_family: 'black',   msrp_usd: 11 },
+      { name: 'Not Plain White',                           slug: 'not-plain-white',                         hex_color: '#E8E4F4', hex_secondary: '#C080D0', finish_category: 'multichrome', color_family: 'neutral', msrp_usd: 11 },
+      { name: 'Dreamlike',                                 slug: 'dreamlike',                               hex_color: '#3A60A0', hex_secondary: '#A060D0', finish_category: 'holo',        color_family: 'blue',    msrp_usd: 11 },
+      { name: 'Seriously Sassy',                           slug: 'seriously-sassy',                         hex_color: '#4A2060',                           finish_category: 'jelly',       color_family: 'purple',  msrp_usd: 11 },
+      { name: 'Bird Is The Word',                          slug: 'bird-is-the-word',                        hex_color: '#B83090',                           finish_category: 'holo',        color_family: 'pink',    msrp_usd: 11 },
+      { name: "What The Deuce?",                           slug: 'what-the-deuce',                          hex_color: '#2A8040',                           finish_category: 'holo',        color_family: 'green',   msrp_usd: 11 },
+      { name: 'One Is Never Un Oeuf',                      slug: 'one-is-never-un-oeuf',                    hex_color: '#2A8078',                           finish_category: 'holo',        color_family: 'green',   msrp_usd: 11 },
+      { name: "I Don't Think You're Ready For This Jelly", slug: 'i-dont-think-youre-ready-for-this-jelly', hex_color: '#C890D8',                           finish_category: 'flakies',     color_family: 'purple',  msrp_usd: 11 },
+      { name: 'Chi Skyline',                               slug: 'chi-skyline',                             hex_color: '#E860A0',                           finish_category: 'flakies',     color_family: 'pink',    msrp_usd: 11 },
+      { name: 'Bette Davis Eyes',                          slug: 'bette-davis-eyes',                        hex_color: '#E8E8F0',                           finish_category: 'holo',        color_family: 'neutral', msrp_usd: 11 },
+      { name: 'Walk Like an Egyptian',                     slug: 'walk-like-an-egyptian',                   hex_color: '#C8A030',                           finish_category: 'holo',        color_family: 'yellow',  msrp_usd: 11 },
+    ])
+    if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+  }
+
+  // ── Wildflower Lacquer (manual — API blocked) ─────────────────────────────────
+  if (should('wildflower-lacquer')) {
+    console.log('Adding Wildflower Lacquer (manual)...')
+    const polishes = manual(brandId['wildflower-lacquer'], [
+      { name: 'Aretha',                slug: 'aretha',                hex_color: '#E8B830', hex_secondary: '#C08030', finish_category: 'multichrome', color_family: 'yellow',  msrp_usd: 13 },
+      { name: 'Audrey',                slug: 'audrey',                hex_color: '#8B1830',                           finish_category: 'holo',        color_family: 'red',     msrp_usd: 13 },
+      { name: 'Billie',                slug: 'billie',                hex_color: '#D0D0D8', hex_secondary: '#E090B0', finish_category: 'multichrome', color_family: 'neutral', msrp_usd: 13 },
+      { name: 'Judy',                  slug: 'judy',                  hex_color: '#6B1040', hex_secondary: '#A040A0', finish_category: 'multichrome', color_family: 'red',     msrp_usd: 13 },
+      { name: 'Lucille',               slug: 'lucille',               hex_color: '#E8C8C4', hex_secondary: '#D09090', finish_category: 'multichrome', color_family: 'pink',    msrp_usd: 13 },
+      { name: 'Marilyn',               slug: 'marilyn',               hex_color: '#C83020', hex_secondary: '#D06030', finish_category: 'multichrome', color_family: 'red',     msrp_usd: 13 },
+      { name: 'Patsy',                 slug: 'patsy',                 hex_color: '#1A6868',                           finish_category: 'holo',        color_family: 'green',   msrp_usd: 13 },
+      { name: 'Ceiling Full of Stars', slug: 'ceiling-full-of-stars', hex_color: '#C8E8D0', hex_secondary: '#A0D0B8', finish_category: 'holo',        color_family: 'green',   msrp_usd: 13 },
+      { name: 'Juice Bar',             slug: 'juice-bar',             hex_color: '#D84080', hex_secondary: '#E06050', finish_category: 'multichrome', color_family: 'pink',    msrp_usd: 13 },
+      { name: 'Retro Roller Skates',   slug: 'retro-roller-skates',   hex_color: '#F0F0F4', hex_secondary: '#80C8E0', finish_category: 'holo',        color_family: 'neutral', msrp_usd: 13 },
+    ])
+    if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+  }
+
   // ── OPI (manual — site not scrapeable) ───────────────────────────────────────
   if (should('opi')) {
     console.log('Adding OPI (manual)...')
@@ -496,6 +563,28 @@ async function run() {
       { name: 'Fiji',           slug: 'fiji',           hex_color: '#E87060', finish_category: 'cream',   color_family: 'pink',    msrp_usd: 10 },
       { name: 'Geranium',       slug: 'geranium',       hex_color: '#E85040', finish_category: 'cream',   color_family: 'red',     msrp_usd: 10 },
       { name: 'Midnight Cami',  slug: 'midnight-cami',  hex_color: '#1A1830', finish_category: 'shimmer', color_family: 'blue',    msrp_usd: 10 },
+    ])
+    if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+  }
+
+  // ── Sally Hansen (manual — Coty corporate site) ───────────────────────────────
+  if (should('sally-hansen')) {
+    console.log('Adding Sally Hansen (manual)...')
+    const polishes = manual(brandId['sally-hansen'], [
+      // Complete Salon Manicure
+      { name: 'Commander in Chic',  slug: 'commander-in-chic',  hex_color: '#8B7060', finish_category: 'cream',   color_family: 'neutral', msrp_usd: 7 },
+      { name: 'Arm Candy',          slug: 'arm-candy',          hex_color: '#F0D8D8', finish_category: 'cream',   color_family: 'pink',    msrp_usd: 7 },
+      { name: 'Gilty Party',        slug: 'gilty-party',        hex_color: '#C89870', finish_category: 'shimmer', color_family: 'neutral', msrp_usd: 7 },
+      // Miracle Gel
+      { name: 'Greyfitti',          slug: 'greyfitti',          hex_color: '#A0B0C0', finish_category: 'cream',   color_family: 'blue',    msrp_usd: 10 },
+      { name: 'Stilettos & Studs',  slug: 'stilettos-and-studs', hex_color: '#606070', finish_category: 'shimmer', color_family: 'neutral', msrp_usd: 10 },
+      { name: 'Metro Midnight',     slug: 'metro-midnight',     hex_color: '#1A1A30', finish_category: 'cream',   color_family: 'blue',    msrp_usd: 10 },
+      { name: 'Jealous Boyfriend',  slug: 'jealous-boyfriend',  hex_color: '#6B1A1A', finish_category: 'cream',   color_family: 'red',     msrp_usd: 10 },
+      { name: 'Bourbon Belle',      slug: 'bourbon-belle',      hex_color: '#6B1828', finish_category: 'cream',   color_family: 'red',     msrp_usd: 10 },
+      // Insta-Dri Prismatic Shine
+      { name: 'Moonstone',          slug: 'moonstone',          hex_color: '#E8F0F8', hex_secondary: '#A0C0E8', finish_category: 'shimmer', color_family: 'blue',    msrp_usd: 8 },
+      { name: 'Pink Aurora',        slug: 'pink-aurora',        hex_color: '#E060A0', hex_secondary: '#A040C0', finish_category: 'holo',    color_family: 'pink',    msrp_usd: 8 },
+      { name: 'Cosmic Blu',         slug: 'cosmic-blu',         hex_color: '#B0C8E8', hex_secondary: '#80A8D0', finish_category: 'shimmer', color_family: 'blue',    msrp_usd: 8 },
     ])
     if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
   }
