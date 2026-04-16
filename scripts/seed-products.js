@@ -15,6 +15,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { chromium } from 'playwright'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -118,7 +119,7 @@ function slugify(name) {
 
 const BUNDLE_KEYWORDS = ['bundle', 'gift', 'kit', 'set', 'oil', 'remover', 'file', 'buffer',
   'sticker', 'nail art', 'replacement', 'brush', 'spatula', 'capsule collection', 'duo', 'trio',
-  'quad', 'collection']
+  'quad', 'collection', 'thinner', 'dropper']
 
 function isActualPolish(product) {
   const t = product.title.toLowerCase()
@@ -150,6 +151,78 @@ function shopifyProductToPolish(product, brandId, msrp) {
     is_limited:      isLimited,
     images:          image ? [image] : [],
   }
+}
+
+// ─── Fetch from a custom storefront using a real browser ─────────────────────
+
+const BUNDLE_KEYWORDS_LOWER = BUNDLE_KEYWORDS.map(k => k.toLowerCase())
+
+/**
+ * Fetch products from KBShimmer's custom PHP storefront via headless browser.
+ * Returns array of { name, slug, images, finish_category, color_family, hex_color, msrp_usd }.
+ */
+async function fetchKBShimmerCatalog(brandId, limit = 30) {
+  const browser = await chromium.launch({ headless: true })
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  })
+  const page = await context.newPage()
+  const results = []
+
+  try {
+    await page.goto('https://www.kbshimmer.com/nail-polish/', { waitUntil: 'domcontentloaded', timeout: 20000 })
+
+    const products = await page.$$eval('.catalog-product', items =>
+      items.map(el => {
+        const anchor = el.querySelector('.catalog-product-title a')
+        const title = anchor?.textContent?.trim() ?? null
+        const href = anchor?.getAttribute('href') ?? null
+        // Prefer the product link's own image (the thumbnail anchor), not badge overlays.
+        // Product images live under /images/products/; UI assets live under /content/skins/.
+        const imgs = [...el.querySelectorAll('img')]
+        const img = imgs.find(i => {
+          const s = i.getAttribute('src') ?? ''
+          return s.includes('images/products') || s.includes('/products/')
+        }) ?? null
+        const src = img?.getAttribute('src') ?? null
+        return { title, href, src }
+      }).filter(p => p.title && p.src)
+    )
+
+    for (const { title, href, src } of products) {
+      if (BUNDLE_KEYWORDS_LOWER.some(k => title.toLowerCase().includes(k))) continue
+      if (results.length >= limit) break
+
+      // Make image URL absolute
+      const image = src.startsWith('http') ? src
+        : src.startsWith('//') ? `https:${src}`
+        : `https://www.kbshimmer.com/${src.replace(/^\//, '')}`
+
+      // Derive slug from the product page URL or from the title
+      const slugFromHref = href
+        ? new URL(href, 'https://www.kbshimmer.com').pathname.replace(/^\/|\/$/g, '')
+        : null
+      const slug = slugFromHref || slugify(title)
+
+      results.push({
+        brand_id: brandId,
+        name: title,
+        slug,
+        hex_color: '#888888',
+        finish_category: 'other',
+        color_family: 'neutral',
+        msrp_usd: 13,
+        is_verified: true,
+        is_limited: false,
+        images: [image],
+      })
+    }
+  } finally {
+    await context.close()
+    await browser.close()
+  }
+
+  return results
 }
 
 // ─── Manually curated products ───────────────────────────────────────────────
@@ -191,17 +264,37 @@ async function run() {
     console.error('  Error:', e.message)
   }
 
-  // ── KBShimmer (manual) ──────────────────────────────────────────────────────
-  console.log('Adding KBShimmer...')
-  allPolishes.push(...manual(brandId['kbshimmer'], [
-    { name: 'Clearly on Top',      slug: 'clearly-on-top',      hex_color: '#E8E8F0', finish_category: 'holo',     color_family: 'neutral', msrp_usd: 10 },
-    { name: 'I Sea the Point',     slug: 'i-sea-the-point',     hex_color: '#4A9EC8', finish_category: 'holo',     color_family: 'blue',    msrp_usd: 10 },
-    { name: 'Whiskey Business',    slug: 'whiskey-business',    hex_color: '#C87840', finish_category: 'shimmer',  color_family: 'orange',  msrp_usd: 10 },
-    { name: 'Brace For Impact',    slug: 'brace-for-impact',    hex_color: '#7A5BB8', finish_category: 'holo',     color_family: 'purple',  msrp_usd: 10 },
-    { name: 'Happiness is a Mood', slug: 'happiness-is-a-mood', hex_color: '#E8A8C8', finish_category: 'holo',     color_family: 'pink',    msrp_usd: 10 },
-    { name: "Don't Kale My Vibe",  slug: 'dont-kale-my-vibe',  hex_color: '#3A8A4A', finish_category: 'cream',    color_family: 'green',   msrp_usd: 10 },
-    { name: 'Sultans of Shimmer',  slug: 'sultans-of-shimmer',  hex_color: '#C8A040', finish_category: 'shimmer',  color_family: 'yellow',  msrp_usd: 10 },
-  ]))
+  // ── Cirque Colors (Shopify — only "all" collection is populated) ────────────
+  console.log('Fetching Cirque Colors...')
+  try {
+    const ccProducts = await fetchShopifyBestSellers('cirquecolors.com', 'all', 20)
+    const ccPolishes = ccProducts.map(p => shopifyProductToPolish(p, brandId['cirque-colors'], 16))
+    console.log(`  ${ccPolishes.length} products`)
+    allPolishes.push(...ccPolishes)
+  } catch (e) {
+    console.error('  Error:', e.message)
+  }
+
+  // ── Rogue Lacquer (Shopify best-sellers) ─────────────────────────────────────
+  console.log('Fetching Rogue Lacquer best-sellers...')
+  try {
+    const rlProducts = await fetchShopifyBestSellers('roguelacquer.com', 'best-sellers', 20)
+    const rlPolishes = rlProducts.map(p => shopifyProductToPolish(p, brandId['rogue-lacquer'], 13))
+    console.log(`  ${rlPolishes.length} products`)
+    allPolishes.push(...rlPolishes)
+  } catch (e) {
+    console.error('  Error:', e.message)
+  }
+
+  // ── KBShimmer (live browser fetch from kbshimmer.com/nail-polish/) ──────────
+  console.log('Fetching KBShimmer catalog via browser...')
+  try {
+    const kbPolishes = await fetchKBShimmerCatalog(brandId['kbshimmer'], 30)
+    console.log(`  ${kbPolishes.length} products (${kbPolishes.filter(p => p.images?.length).length} with images)`)
+    allPolishes.push(...kbPolishes)
+  } catch (e) {
+    console.error('  Error:', e.message)
+  }
 
   // ── ILNP (manual) ───────────────────────────────────────────────────────────
   console.log('Adding ILNP...')
@@ -214,17 +307,6 @@ async function run() {
     { name: 'Reverie',              slug: 'reverie',              hex_color: '#C8A8B8', finish_category: 'shimmer',     color_family: 'pink',    msrp_usd: 10 },
   ]))
 
-  // ── Cirque Colors (manual) ──────────────────────────────────────────────────
-  console.log('Adding Cirque Colors...')
-  allPolishes.push(...manual(brandId['cirque-colors'], [
-    { name: 'Duchess',          slug: 'duchess',          hex_color: '#E8D5D0', finish_category: 'shimmer',     color_family: 'neutral', msrp_usd: 16 },
-    { name: 'Retrograde',       slug: 'retrograde',       hex_color: '#3A2A7A', finish_category: 'multichrome', color_family: 'purple',  msrp_usd: 16 },
-    { name: 'Crystallize',      slug: 'crystallize',      hex_color: '#E8E8F0', finish_category: 'holo',        color_family: 'neutral', msrp_usd: 16 },
-    { name: 'Forest Bathing',   slug: 'forest-bathing',   hex_color: '#3A6A3A', finish_category: 'shimmer',     color_family: 'green',   msrp_usd: 16 },
-    { name: 'Ultraviolet',      slug: 'ultraviolet',      hex_color: '#5B2D8E', finish_category: 'cream',       color_family: 'purple',  msrp_usd: 16 },
-    { name: 'Verdant',          slug: 'verdant',          hex_color: '#3A7A4A', finish_category: 'cream',       color_family: 'green',   msrp_usd: 16 },
-  ]))
-
   // ── Glisten & Glow (manual) ─────────────────────────────────────────────────
   console.log('Adding Glisten & Glow...')
   allPolishes.push(...manual(brandId['glisten-and-glow'], [
@@ -232,16 +314,6 @@ async function run() {
     { name: 'Mermaid Wishes',       slug: 'mermaid-wishes',       hex_color: '#5DC8C8', finish_category: 'holo',   color_family: 'blue',    msrp_usd: 11 },
     { name: 'Kicking and Streaming',slug: 'kicking-and-streaming',hex_color: '#4A90A0', finish_category: 'shimmer',color_family: 'blue',    msrp_usd: 11 },
     { name: 'Lemon Drop',           slug: 'lemon-drop',           hex_color: '#E8D840', finish_category: 'holo',   color_family: 'yellow',  msrp_usd: 11 },
-  ]))
-
-  // ── Rogue Lacquer (manual) ──────────────────────────────────────────────────
-  console.log('Adding Rogue Lacquer...')
-  allPolishes.push(...manual(brandId['rogue-lacquer'], [
-    { name: 'Galaxy Brain',  slug: 'galaxy-brain',  hex_color: '#2B1D5A', finish_category: 'multichrome', color_family: 'purple', msrp_usd: 13 },
-    { name: 'Shift Happens', slug: 'shift-happens', hex_color: '#4A7090', finish_category: 'duochrome',   color_family: 'blue',   msrp_usd: 13 },
-    { name: 'The Blues',     slug: 'the-blues',     hex_color: '#1A3A7A', finish_category: 'holo',        color_family: 'blue',   msrp_usd: 13 },
-    { name: 'Burn It Down',  slug: 'burn-it-down',  hex_color: '#C04020', finish_category: 'shimmer',     color_family: 'red',    msrp_usd: 13 },
-    { name: 'Night Howler',  slug: 'night-howler',  hex_color: '#1A1A3A', finish_category: 'multichrome', color_family: 'blue',   msrp_usd: 13 },
   ]))
 
   // ── OPI (manual) ────────────────────────────────────────────────────────────
