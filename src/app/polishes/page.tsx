@@ -2,12 +2,15 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { getPolishes } from '@/lib/queries/polishes'
 import { getBrands } from '@/lib/queries/brands'
+import { getUserStashMap } from '@/lib/queries/stash'
+import { createClient } from '@/lib/supabase/server'
 import { PolishCard } from '@/components/polish/PolishCard'
+import { StashIconButton } from '@/components/stash/StashIconButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { finishLabel } from '@/lib/utils/format'
-import type { FinishCategory, ColorFamily } from '@/lib/types/app.types'
+import type { FinishCategory, ColorFamily, StashStatus } from '@/lib/types/app.types'
 
 export const metadata: Metadata = {
   title: 'Browse Polishes',
@@ -55,9 +58,13 @@ export default async function PolishesPage({ searchParams }: PageProps) {
     page: params.page ? parseInt(params.page) : 1,
   }
 
-  const [{ polishes, total }, brands] = await Promise.all([
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const [{ polishes, total }, brands, stashMap] = await Promise.all([
     getPolishes(filters),
     getBrands(),
+    user ? getUserStashMap(user.id) : Promise.resolve({} as Record<string, { id: string; status: StashStatus }>),
   ])
 
   const buildUrl = (overrides: Record<string, string | undefined>) => {
@@ -202,7 +209,17 @@ export default async function PolishesPage({ searchParams }: PageProps) {
             {polishes.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                 {polishes.map(polish => (
-                  <PolishCard key={polish.id} polish={polish} showDupeCount />
+                  <div key={polish.id} className="relative group/stash">
+                    <PolishCard polish={polish} showDupeCount />
+                    {user && (
+                      <div className={`absolute top-2 right-2 z-10 transition-opacity ${stashMap[polish.id] ? 'opacity-100' : 'opacity-0 group-hover/stash:opacity-100'}`}>
+                        <StashIconButton
+                          polishId={polish.id}
+                          stashItem={stashMap[polish.id]}
+                        />
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (

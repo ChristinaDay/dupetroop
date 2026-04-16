@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button'
 import { DupeCard } from '@/components/dupe/DupeCard'
 import { PolishCard } from '@/components/polish/PolishCard'
 import { TrendingPolishCard } from '@/components/polish/TrendingPolishCard'
+import { StashIconButton } from '@/components/stash/StashIconButton'
 import { getFeaturedDupes, getRecentDupes } from '@/lib/queries/dupes'
 import { getPolishes, getFeaturedPolishes } from '@/lib/queries/polishes'
+import { getUserStashMap } from '@/lib/queries/stash'
+import { createClient } from '@/lib/supabase/server'
 import { finishLabel } from '@/lib/utils/format'
-import type { FinishCategory } from '@/lib/types/app.types'
+import type { FinishCategory, StashStatus } from '@/lib/types/app.types'
 import { HeroSearch } from '@/components/search/HeroSearch'
 
 const FINISH_TILES: { finish: FinishCategory; emoji: string }[] = [
@@ -36,11 +39,15 @@ const COLOR_FAMILIES: { color: string; hex: string; label: string }[] = [
 ]
 
 export default async function HomePage() {
-  const [featuredPolishes, featuredDupes, recentDupes, newPolishes] = await Promise.all([
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const [featuredPolishes, featuredDupes, recentDupes, newPolishes, stashMap] = await Promise.all([
     getFeaturedPolishes(6).catch(() => []),
     getFeaturedDupes(6).catch(() => []),
     getRecentDupes(4).catch(() => []),
     getPolishes({ sort: 'newest' }).then(r => r.polishes.slice(0, 4)).catch(() => []),
+    user ? getUserStashMap(user.id) : Promise.resolve({} as Record<string, { id: string; status: StashStatus }>),
   ])
 
   return (
@@ -221,7 +228,17 @@ export default async function HomePage() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {newPolishes.map(polish => (
-                <PolishCard key={polish.id} polish={polish} showDupeCount />
+                <div key={polish.id} className="relative group/stash">
+                  <PolishCard polish={polish} showDupeCount />
+                  {user && (
+                    <div className={`absolute top-2 right-2 z-10 transition-opacity ${stashMap[polish.id] ? 'opacity-100' : 'opacity-0 group-hover/stash:opacity-100'}`}>
+                      <StashIconButton
+                        polishId={polish.id}
+                        stashItem={stashMap[polish.id]}
+                      />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>

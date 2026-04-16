@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { StashItemWithPolish, StashSummary } from '@/lib/types/app.types'
+import type { StashItemWithPolish, StashSummary, StashStatus } from '@/lib/types/app.types'
 
 const POLISH_SELECT = `*, brand:brands(*), collection:collections(*)`
 
@@ -65,6 +65,29 @@ export async function getUserStash(
     items: (data ?? []) as unknown as StashItemWithPolish[],
     total: count ?? 0,
   }
+}
+
+// Returns a map of polish_id → { id, status } for lightweight bulk stash checks.
+// Used to render stash icon buttons on browse grids.
+export async function getUserStashMap(
+  userId: string,
+): Promise<Record<string, { id: string; status: StashStatus }>> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { data, error } = await db
+    .from('stash_items')
+    .select('id, polish_id, status')
+    .eq('user_id', userId)
+
+  if (error) throw error
+
+  const map: Record<string, { id: string; status: StashStatus }> = {}
+  for (const row of data ?? []) {
+    map[row.polish_id] = { id: row.id, status: row.status as StashStatus }
+  }
+  return map
 }
 
 // Returns the set of polish IDs in a user's stash — used for bulk ownership
