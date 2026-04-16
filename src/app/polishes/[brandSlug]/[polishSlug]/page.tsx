@@ -39,16 +39,18 @@ export default async function PolishDetailPage({ params }: PageProps) {
 
   // Check if this polish is already in the user's stash
   let stashItemId: string | undefined
+  let stashItemStatus: 'owned' | 'wishlist' | 'bookmarked' | undefined
   if (user) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     const { data } = await db
       .from('stash_items')
-      .select('id')
+      .select('id, status')
       .eq('user_id', user.id)
       .eq('polish_id', polish.id)
       .maybeSingle()
     stashItemId = data?.id
+    stashItemStatus = data?.status
   }
 
   const [dupes, looks] = await Promise.all([
@@ -111,6 +113,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
               <AddToStashButton
                 polishId={polish.id}
                 stashItemId={stashItemId}
+                stashItemStatus={stashItemStatus}
               />
             )}
           </div>
