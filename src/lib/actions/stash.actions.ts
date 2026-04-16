@@ -37,7 +37,7 @@ export async function addToStash(input: {
 
 export async function rateStashItem(
   stashItemId: string,
-  rating: number | null,
+  ratings: { color: number | null; finish: number | null; formula: number | null },
   reviewNotes?: string
 ): Promise<{ success: true } | { error: string }> {
   const supabase = await createClient()
@@ -49,7 +49,12 @@ export async function rateStashItem(
   const db = supabase as any
   const { error } = await db
     .from('stash_items')
-    .update({ rating, review_notes: reviewNotes ?? null })
+    .update({
+      color_rating: ratings.color,
+      finish_rating: ratings.finish,
+      formula_rating: ratings.formula,
+      review_notes: reviewNotes ?? null,
+    })
     .eq('id', stashItemId)
     .eq('user_id', user.id)
 

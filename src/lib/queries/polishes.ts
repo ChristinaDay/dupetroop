@@ -119,20 +119,25 @@ export async function searchPolishes(q: string): Promise<PolishWithBrand[]> {
 }
 
 export async function getPolishRatings(polishId: string): Promise<{
-  ownerRating: { avg: number; count: number } | null
+  ownerRating: {
+    avg: number
+    avgColor: number | null
+    avgFinish: number | null
+    avgFormula: number | null
+    count: number
+  } | null
   externalRatings: import('@/lib/types/app.types').ExternalRating[]
 }> {
   const supabase = await createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
-  const [stashResult, externalResult] = await Promise.all([
+  const [polishResult, externalResult] = await Promise.all([
     db
-      .from('stash_items')
-      .select('rating')
-      .eq('polish_id', polishId)
-      .eq('status', 'owned')
-      .not('rating', 'is', null),
+      .from('polishes')
+      .select('avg_rating, avg_color_rating, avg_finish_rating, avg_formula_rating, rating_count')
+      .eq('id', polishId)
+      .single(),
     db
       .from('polish_external_ratings')
       .select('*')
@@ -140,11 +145,14 @@ export async function getPolishRatings(polishId: string): Promise<{
       .order('review_count', { ascending: false, nullsFirst: false }),
   ])
 
-  const ratings: { rating: number }[] = stashResult.data ?? []
-  const ownerRating = ratings.length > 0
+  const p = polishResult.data
+  const ownerRating = p?.rating_count > 0 && p?.avg_rating != null
     ? {
-        avg: ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length,
-        count: ratings.length,
+        avg: Number(p.avg_rating),
+        avgColor: p.avg_color_rating != null ? Number(p.avg_color_rating) : null,
+        avgFinish: p.avg_finish_rating != null ? Number(p.avg_finish_rating) : null,
+        avgFormula: p.avg_formula_rating != null ? Number(p.avg_formula_rating) : null,
+        count: p.rating_count,
       }
     : null
 

@@ -105,7 +105,9 @@ export type StashItem = {
   user_id: string
   polish_id: string
   status: StashStatus
-  rating: number | null
+  color_rating: number | null
+  finish_rating: number | null
+  formula_rating: number | null
   review_notes: string | null
   notes: string | null
   is_favorite: boolean

@@ -11,17 +11,26 @@ interface StashPolishCardProps {
 }
 
 export function StashPolishCard({ item }: StashPolishCardProps) {
-  const [rating, setRating] = useState<number | null>(item.rating)
+  const [color, setColor] = useState<number | null>(item.color_rating)
+  const [finish, setFinish] = useState<number | null>(item.finish_rating)
+  const [formula, setFormula] = useState<number | null>(item.formula_rating)
   const [hovered, setHovered] = useState<number | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const displayed = hovered ?? rating ?? 0
+  const hasRating = color !== null && finish !== null && formula !== null
+  const avg = hasRating ? (color + finish + formula) / 3 : null
+  const displayed = hovered ?? (avg !== null ? Math.round(avg) : 0)
 
+  // Clicking a star on the card sets all three dimensions to the same value
+  // (quick overall rating). Full breakdown available on the polish detail page.
   function handleRate(star: number) {
-    const newRating = star === rating ? null : star  // click same star to clear
-    setRating(newRating)
+    const allSame = star === color && star === finish && star === formula
+    const val = allSame ? null : star
+    setColor(val)
+    setFinish(val)
+    setFormula(val)
     startTransition(async () => {
-      await rateStashItem(item.id, newRating)
+      await rateStashItem(item.id, { color: val, finish: val, formula: val })
     })
   }
 
@@ -51,8 +60,8 @@ export function StashPolishCard({ item }: StashPolishCardProps) {
             />
           </button>
         ))}
-        {rating && (
-          <span className="ml-1 text-[10px] text-muted-foreground tabular-nums">{rating}/5</span>
+        {avg !== null && (
+          <span className="ml-1 text-[10px] text-muted-foreground tabular-nums">{avg.toFixed(1)}</span>
         )}
       </div>
     </div>
