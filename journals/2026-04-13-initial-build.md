@@ -697,6 +697,59 @@ The `InlinePolishRating` collapsible was previously `w-full`, stretching edge-to
 
 ---
 
+## Session 12 — April 16, 2026
+
+### What was completed
+
+#### Full catalog expansion (173 → 2,180 polishes)
+
+The original seed only pulled best-sellers (20–30 per brand). Rewrote `scripts/seed-products.js` to fetch complete catalogs.
+
+**Strategy per brand:**
+- **Holo Taco, Mooncat, Cirque Colors, Rogue Lacquer** — Shopify `/collections/all/products.json` paginated with `limit=250`. Simple and complete.
+- **ILNP** — WooCommerce Store API, removed the `limitPerCategory=15` cap, now fetches all pages across both categories (629 polishes).
+- **Glisten & Glow** — Switched from scraping individual product HTML pages to the BigCartel `/products.json` API, which returns all 248 products in one call with images included.
+- **KBShimmer** — Cloudflare-protected custom catalog. Discovered the main `/nail-polish/` page only shows a sample; the actual catalog is paginated at `/nail-polish/?p=catalog&parent=1041&pg=N&pagesize=144`. Scrapes pages sequentially with a 45s timeout per page, stops on timeout or empty page. Currently gets ~136 polishes (pages 4+ intermittently time out — Cloudflare rate limiting suspected).
+- **OPI, Essie, Zoya** — Remain manually curated; their sites aren't programmatically scrapeable.
+
+**Other changes:**
+- Added `finishFromName()` helper — infers finish category from product title keywords (used for KBShimmer which doesn't expose tags in catalog view)
+- Non-polish filter tightened: top coats and base coats are now **kept** (people own and dupe these); only true accessories filtered (brushes, files, refills, nail glue, etc.)
+- Upsert batched in chunks of 200 to handle large catalog sizes safely
+- Images: only included in upsert payload when non-null — preserves any previously backfilled images on re-seed
+- Added `--brand` flag for per-brand runs
+
+**Final catalog:**
+
+| Brand | Before | After |
+|---|---|---|
+| Holo Taco | 20 | 347 |
+| Mooncat | 24 | 252 |
+| Cirque Colors | 15 | 366 |
+| Rogue Lacquer | 8 | 176 |
+| ILNP | 30 | 629 |
+| Glisten & Glow | 20 | 248 |
+| KBShimmer | 30 | 136 |
+| Essie | 8 | 8 (manual) |
+| OPI | 9 | 9 (manual) |
+| Zoya | 7 | 7 (manual) |
+| Different Dimension | 2 | 2 (site offline) |
+| **Total** | **173** | **2,180** |
+
+#### Image coverage
+
+Ran `backfill-images.js` after seeding — 2,176/2,180 polishes have images (99.8%). The 4 missing are all discontinued polishes no longer listed on their brand sites (Zoya Posh, Essie Midnight Cami, Different Dimension Outerspace + Magpie). Since the seed script pulls images directly from each brand's API during upsert, the backfill script had almost nothing to do.
+
+### Still to do (next priorities)
+
+- [ ] Polish detail page: recipe section redesign — surface full component alternatives matrix, fold `/looks/[lookId]` into the page
+- [ ] Profile page for other users (`/profile/[username]`)
+- [ ] "Report" button on opinions for moderation
+- [ ] Brand management UI in admin
+- [ ] Open Graph images for polish/dupe pages
+
+---
+
 ## How to Run Locally
 
 ```bash
