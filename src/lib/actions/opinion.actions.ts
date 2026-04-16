@@ -69,6 +69,81 @@ export async function deleteOpinion(
   return {}
 }
 
+export type ReportReason = 'spam' | 'inaccurate' | 'offensive' | 'other'
+
+export async function reportOpinion(
+  opinionId: string,
+  reason: ReportReason,
+  notes?: string
+): Promise<{ error?: string; alreadyReported?: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'You must be logged in to report an opinion.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+  const { error } = await db.from('opinion_reports').insert({
+    opinion_id: opinionId,
+    reporter_id: user.id,
+    reason,
+    notes: notes ?? null,
+  })
+
+  if (error) {
+    if (error.code === '23505') return { alreadyReported: true }
+    return { error: error.message }
+  }
+
+  return {}
+}
+
+export async function dismissReport(
+  reportId: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+  const { error } = await db
+    .from('opinion_reports')
+    .update({ status: 'dismissed' })
+    .eq('id', reportId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/admin/reports')
+  return {}
+}
+
+export async function removeOpinion(
+  reportId: string,
+  opinionId: string,
+  dupeId: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  // Delete the opinion (cascade removes votes + reports)
+  const { error: opError } = await supabase
+    .from('dupe_opinions')
+    .delete()
+    .eq('id', opinionId)
+
+  if (opError) return { error: opError.message }
+
+  // Mark report reviewed (in case cascade didn't clean it up)
+  await db.from('opinion_reports').update({ status: 'reviewed' }).eq('id', reportId)
+
+  revalidatePath(`/dupes/${dupeId}`)
+  revalidatePath('/admin/reports')
+  return {}
+}
+
 export async function toggleHelpfulVote(
   opinionId: string,
   isHelpful: boolean,

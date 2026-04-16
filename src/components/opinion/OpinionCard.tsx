@@ -1,14 +1,29 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ThumbsUp, ThumbsDown, CheckCircle2 } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, CheckCircle2, Flag } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { AccuracyScorebar } from '@/components/dupe/AccuracyScorebar'
 import { formatDate } from '@/lib/utils/format'
-import { toggleHelpfulVote } from '@/lib/actions/opinion.actions'
+import { toggleHelpfulVote, reportOpinion, type ReportReason } from '@/lib/actions/opinion.actions'
 import { toast } from 'sonner'
 import type { OpinionWithProfile } from '@/lib/types/app.types'
+
+const REPORT_REASONS: { value: ReportReason; label: string }[] = [
+  { value: 'spam', label: 'Spam or off-topic' },
+  { value: 'inaccurate', label: 'Clearly inaccurate' },
+  { value: 'offensive', label: 'Offensive content' },
+  { value: 'other', label: 'Other' },
+]
 
 interface OpinionCardProps {
   opinion: OpinionWithProfile
@@ -24,7 +39,26 @@ export function OpinionCard({ opinion, dupeId, currentUserId }: OpinionCardProps
 
   const [userVote, setUserVote] = useState(opinion.user_vote)
   const [helpfulCount, setHelpfulCount] = useState(opinion.helpful_votes)
+  const [reported, setReported] = useState(false)
   const [isPending, startTransition] = useTransition()
+
+  const handleReport = (reason: ReportReason) => {
+    if (!currentUserId) {
+      toast.error('Log in to report an opinion.')
+      return
+    }
+    startTransition(async () => {
+      const result = await reportOpinion(opinion.id, reason)
+      if (result.alreadyReported) {
+        toast.info("You've already reported this opinion.")
+      } else if (result.error) {
+        toast.error(result.error)
+      } else {
+        setReported(true)
+        toast.success('Opinion reported. Thanks for helping keep DupeTroop accurate.')
+      }
+    })
+  }
 
   const handleVote = (isHelpful: boolean) => {
     if (!currentUserId) {
@@ -93,30 +127,65 @@ export function OpinionCard({ opinion, dupeId, currentUserId }: OpinionCardProps
         </div>
       )}
 
-      {/* Helpful votes */}
-      <div className="flex items-center gap-3 pt-1">
-        <span className="text-xs text-muted-foreground">Helpful?</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1 px-2"
-          onClick={() => handleVote(true)}
-          disabled={isPending}
-          aria-pressed={userVote === true}
-        >
-          <ThumbsUp className={`h-3.5 w-3.5 ${userVote === true ? 'text-primary fill-primary' : ''}`} />
-          <span className="text-xs tabular-nums">{helpfulCount}</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1 px-2"
-          onClick={() => handleVote(false)}
-          disabled={isPending}
-          aria-pressed={userVote === false}
-        >
-          <ThumbsDown className={`h-3.5 w-3.5 ${userVote === false ? 'text-destructive fill-destructive' : ''}`} />
-        </Button>
+      {/* Helpful votes + report */}
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">Helpful?</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2"
+            onClick={() => handleVote(true)}
+            disabled={isPending}
+            aria-pressed={userVote === true}
+          >
+            <ThumbsUp className={`h-3.5 w-3.5 ${userVote === true ? 'text-primary fill-primary' : ''}`} />
+            <span className="text-xs tabular-nums">{helpfulCount}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2"
+            onClick={() => handleVote(false)}
+            disabled={isPending}
+            aria-pressed={userVote === false}
+          >
+            <ThumbsDown className={`h-3.5 w-3.5 ${userVote === false ? 'text-destructive fill-destructive' : ''}`} />
+          </Button>
+        </div>
+
+        {/* Report button — only shown to logged-in non-authors */}
+        {currentUserId && currentUserId !== opinion.user_id && (
+          reported ? (
+            <span className="text-xs text-muted-foreground/60 flex items-center gap-1">
+              <Flag className="h-3 w-3" />
+              Reported
+            </span>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="h-7 px-2 inline-flex items-center justify-center rounded-md text-muted-foreground/40 hover:text-muted-foreground hover:bg-accent transition-colors disabled:pointer-events-none disabled:opacity-50"
+                disabled={isPending}
+                title="Report this opinion"
+              >
+                <Flag className="h-3.5 w-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-xs font-semibold">Report reason</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {REPORT_REASONS.map(r => (
+                  <DropdownMenuItem
+                    key={r.value}
+                    onSelect={() => handleReport(r.value)}
+                    className="text-sm"
+                  >
+                    {r.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        )}
       </div>
     </div>
   )
