@@ -4,9 +4,13 @@ import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 import { getBrandBySlug } from '@/lib/queries/brands'
 import { getPolishes } from '@/lib/queries/polishes'
+import { getUserStashMap } from '@/lib/queries/stash'
+import { createClient } from '@/lib/supabase/server'
 import { PolishCard } from '@/components/polish/PolishCard'
+import { StashIconButton } from '@/components/stash/StashIconButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import type { StashStatus } from '@/lib/types/app.types'
 
 interface PageProps {
   params: Promise<{ brandSlug: string }>
@@ -24,9 +28,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BrandPage({ params }: PageProps) {
   const { brandSlug } = await params
-  const [brand, { polishes, total }] = await Promise.all([
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const [brand, { polishes, total }, stashMap] = await Promise.all([
     getBrandBySlug(brandSlug),
     getPolishes({ brand: brandSlug }),
+    user ? getUserStashMap(user.id) : Promise.resolve({} as Record<string, { id: string; status: StashStatus }>),
   ])
 
   if (!brand) notFound()
@@ -75,7 +83,17 @@ export default async function BrandPage({ params }: PageProps) {
       {polishes.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {polishes.map(polish => (
-            <PolishCard key={polish.id} polish={polish} showDupeCount />
+            <div key={polish.id} className="relative group/stash">
+              <PolishCard polish={polish} showDupeCount />
+              {user && (
+                <div className={`absolute top-2 right-2 z-10 transition-opacity ${stashMap[polish.id] ? 'opacity-100' : 'opacity-0 group-hover/stash:opacity-100'}`}>
+                  <StashIconButton
+                    polishId={polish.id}
+                    stashItem={stashMap[polish.id]}
+                  />
+                </div>
+              )}
+            </div>
           ))}
         </div>
       ) : (
