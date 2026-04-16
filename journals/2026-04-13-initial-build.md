@@ -525,6 +525,57 @@ The next major feature work on the polish detail page is to replace the current 
 
 ---
 
+## Session 9 — April 16, 2026
+
+### What was completed
+
+#### DupeCard redesign
+
+Replaced the floating score pill with a split swatch layout that puts both polishes side by side. Score and opinions now live in a clean text row below the images — no overlay, no clinical box.
+
+- `aspect-2/1` split image area: Polish A left, Polish B right, both `object-cover object-top`
+- Bottom row: color-coded score + "Dupe Rating" label on the left, opinion count on the right
+- "No ratings yet" when `avg_overall` is null
+- Score colors: emerald ≥4, amber ≥3, rose <3
+
+#### Opinion sort: owns_both first
+
+Community opinions on the dupe detail page now sort with `owns_both = true` opinions at the top, `helpful_votes` as tiebreaker. Reviewers who've held both bottles surface first — no mathematical weighting, just display priority.
+
+#### Dupe detail page redesign
+
+Complete visual overhaul. The page was ratings-centric; it's now image-centric and discovery-forward.
+
+**New layout:**
+- **Split gallery hero** (`DupePolishColumn`) — two tall portrait columns, one per polish. Product image first, community stash swatches will slot in below at equal visual hierarchy. A dashed "Share your swatch" CTA (links to `/stash`) sits under each column's images.
+- **Lightweight score strip** — replaces the big bordered scorecard. Color / Finish / Formula / Overall as four centered numbers with small labels, separated by hairlines. "Based on N opinions" count below when ratings exist.
+- **Opinion form** reframed as "Have you tried both?" with a casual subtitle instead of a clinical header.
+- **"More dupes to explore"** grid at the bottom — related dupes that share either polish, for eternal browsing.
+
+**New files:**
+- `src/components/dupe/DupePolishColumn.tsx` — renders one side of the hero: role label, image stack, "Share your swatch" CTA, polish name/brand/badge/price below
+
+**New query:**
+- `getRelatedDupes(dupeId, polishAId, polishBId, limit)` — fetches approved dupes sharing either polish, excluding the current one, ordered by avg_overall
+
+#### Community swatch images — design decision
+
+Discussed pulling in product reviews from brand sites to populate ratings. Ruled out auto-importing because external reviews are about a single polish, not a dupe pair — they can't map to our three-dimensional color/finish/formula accuracy system. Decided to defer linking out to brand review pages; not worth the scraping maintenance cost.
+
+Community swatch images will come from the stash: when a user photographs a polish in their stash, that image surfaces on dupe pages in the polish's column at the same visual hierarchy as the official product image. No separate "submit a swatch" flow on the dupe page itself.
+
+### Still to do (next priorities)
+
+- [ ] Stash overhaul — add `status` field (owned/wishlist/bookmarked) + user-defined nested groups to `stash_items`; redesign stash page as a tabbed personal dashboard
+- [ ] Bookmark/add-to-stash interaction on all cards — state picker (Owned / Wishlist / Bookmarked)
+- [ ] Polish detail page: recipe section redesign — surface full component alternatives matrix, fold `/looks/[lookId]` into the page
+- [ ] Profile page for other users (`/profile/[username]`)
+- [ ] "Report" button on opinions for moderation
+- [ ] Brand management UI in admin
+- [ ] Open Graph images for polish/dupe pages
+
+---
+
 ## How to Run Locally
 
 ```bash
