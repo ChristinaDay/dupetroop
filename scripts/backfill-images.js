@@ -74,7 +74,13 @@ const BRAND_CONFIG = {
   'mooncat':      { domain: 'mooncat.com',       strategy: 'shopify-bulk', collection: 'all' },
   'cirque-colors':{ domain: 'cirquecolors.com',  strategy: 'shopify-bulk', collection: 'all' },
   'rogue-lacquer':{ domain: 'roguelacquer.com',  strategy: 'shopify-bulk', collection: 'all' },
-  'zoya':         { domain: 'www.zoya.com',      strategy: 'shopify-bulk', collection: 'all' },
+  // Zoya is on Magento (artofbeauty.com). Sitemap at zoya.com indexes product
+  // pages on zoya.artofbeauty.com which return og:image in raw HTML.
+  'zoya': {
+    domain: 'www.zoya.com',
+    strategy: 'zoya',
+    sitemapUrl: 'https://www.zoya.com/sitemap_zoya.xml',
+  },
 
   // ── WooCommerce Store API (public, no auth) ────────────────────────────────
   // Fetches /wp-json/wc/store/v1/products with browser UA — no browser needed.
@@ -287,6 +293,35 @@ async function fetchWooCommerceApi(domain, categories = []) {
 // 2. For each polish, load the product page in a real browser and extract the
 //    product image by matching alt text to the polish name.
 //
+
+// ─── Strategy: Zoya (Magento / artofbeauty.com) ──────────────────────────────
+//
+// Zoya's sitemap (zoya.com/sitemap_zoya.xml) indexes product pages on
+// zoya.artofbeauty.com. Those pages return og:image in plain HTML — no browser
+// needed. Build a name→URL map from the sitemap, then fetch og:image per polish.
+//
+
+async function fetchZoyaSitemapMap(sitemapUrl) {
+  const res = await fetch(sitemapUrl, { headers: BROWSER_HEADERS })
+  if (!res.ok) throw new Error(`Sitemap fetch failed: HTTP ${res.status}`)
+  const text = await res.text()
+  // URLs are percent-encoded in the sitemap; decode them first
+  const nameToUrl = new Map()
+  for (const [, raw] of text.matchAll(/<loc>([^<]+)<\/loc>/g)) {
+    const url = decodeURIComponent(raw)
+    if (!url.includes('artofbeauty.com/content/item/')) continue
+    // Extract the name segment from the URL slug, e.g. "Zoya-Nail-Polish-Raven" → "raven"
+    const slug = url.split('/').pop().replace(/\.html$/, '').toLowerCase()
+    // Try to isolate the polish name: strip common prefixes
+    const name = slug
+      .replace(/^zoya-nail-polish-in-/, '')
+      .replace(/^zoya-nail-polish-/, '')
+      .replace(/^nail-polish-zoya-nail-polish-/, '')
+      .replace(/-zp\d+$/, '')  // strip ZP code suffix
+    nameToUrl.set(normalizeName(name), url)
+  }
+  return nameToUrl
+}
 
 async function fetchEssieSitemapMap(sitemapUrl) {
   const res = await fetch(sitemapUrl, { headers: BROWSER_HEADERS })
@@ -718,6 +753,60 @@ async function run() {
           }
         } else {
           console.log(`  ✗  ${polish.name} — no image found`)
+          stats.skipped++
+        }
+      }
+    }
+
+    // ── zoya: sitemap name→URL lookup + plain og:image fetch ─────────────────────
+    else if (config.strategy === 'zoya') {
+      console.log(`  Building URL map from Zoya sitemap...`)
+      let nameToUrl
+      try {
+        nameToUrl = await fetchZoyaSitemapMap(config.sitemapUrl)
+      } catch (e) {
+        console.log(`  ✗ Sitemap fetch failed: ${e.message}`)
+        stats.offline += needsImage.length
+        continue
+      }
+      console.log(`  Sitemap loaded: ${nameToUrl.size} product URLs`)
+
+      for (const polish of needsImage) {
+        const key = normalizeName(polish.name)
+        const url = nameToUrl.get(key) ?? null
+
+        if (!url) {
+          console.log(`  ✗  ${polish.name} — not in sitemap (key: "${key}")`)
+          stats.skipped++
+          continue
+        }
+
+        await sleep(REQUEST_DELAY)
+        const res = await fetch(url, { headers: BROWSER_HEADERS })
+        if (!res.ok) {
+          console.log(`  ✗  ${polish.name} — HTTP ${res.status}`)
+          stats.skipped++
+          continue
+        }
+        const html = await res.text()
+        const image = extractOgImage(html)
+
+        if (image) {
+          console.log(`  ✓  ${polish.name}`)
+          console.log(`       ${image}`)
+          stats.matched++
+          if (!DRY_RUN) {
+            const { error: updateError } = await supabase
+              .from('polishes')
+              .update({ images: [image] })
+              .eq('id', polish.id)
+            if (updateError) {
+              console.error(`       ⚠  Write failed: ${updateError.message}`)
+              stats.errors++
+            }
+          }
+        } else {
+          console.log(`  ✗  ${polish.name} — og:image not found`)
           stats.skipped++
         }
       }
