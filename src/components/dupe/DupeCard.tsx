@@ -4,13 +4,6 @@ import { formatScore } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
 import type { DupeWithPolishes } from '@/lib/types/app.types'
 
-function scorePill(score: number | null) {
-  if (score === null) return 'bg-background/90 text-muted-foreground border border-border'
-  if (score >= 4) return 'bg-emerald-500 text-white'
-  if (score >= 3) return 'bg-amber-500 text-white'
-  return 'bg-rose-500 text-white'
-}
-
 export function DupeCard({ dupe }: { dupe: DupeWithPolishes }) {
   const a = dupe.polish_a
   const b = dupe.polish_b
@@ -72,8 +65,17 @@ export function DupeCard({ dupe }: { dupe: DupeWithPolishes }) {
 
       {/* Score + opinion count */}
       <div className="px-3 pb-3 -mt-1 flex items-center justify-between">
-        <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-black', scorePill(dupe.avg_overall))}>
-          {dupe.avg_overall !== null ? formatScore(dupe.avg_overall) : '—'}
+        <span className="text-[10px] text-muted-foreground">
+          {dupe.avg_overall !== null ? (
+            <>
+              <span className={cn('font-black', dupe.avg_overall >= 4 ? 'text-emerald-600 dark:text-emerald-400' : dupe.avg_overall >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')}>
+                {formatScore(dupe.avg_overall)}/5
+              </span>
+              {' '}Dupe Rating
+            </>
+          ) : (
+            'No ratings yet'
+          )}
         </span>
         <span className="text-[10px] text-muted-foreground">
           {dupe.opinion_count} {dupe.opinion_count === 1 ? 'opinion' : 'opinions'}
