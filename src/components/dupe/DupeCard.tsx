@@ -1,85 +1,88 @@
 import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
-import { PolishSwatch } from '@/components/polish/PolishSwatch'
-import { AccuracyScorebar } from './AccuracyScorebar'
+import { swatchStyle } from '@/lib/utils/color'
 import { formatScore } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
 import type { DupeWithPolishes } from '@/lib/types/app.types'
 
-interface DupeCardProps {
-  dupe: DupeWithPolishes
+function scorePill(score: number | null) {
+  if (score === null) return 'bg-background/90 text-muted-foreground border border-border'
+  if (score >= 4) return 'bg-emerald-500 text-white'
+  if (score >= 3) return 'bg-amber-500 text-white'
+  return 'bg-rose-500 text-white'
 }
 
-function overallPill(score: number | null) {
-  if (score === null) return 'bg-muted text-muted-foreground'
-  if (score >= 4) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
-  if (score >= 3) return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
-  return 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200'
-}
-
-export function DupeCard({ dupe }: DupeCardProps) {
+export function DupeCard({ dupe }: { dupe: DupeWithPolishes }) {
   const a = dupe.polish_a
   const b = dupe.polish_b
 
   return (
-    <Card className="group overflow-hidden transition-shadow hover:shadow-md">
-      <CardContent className="p-4">
-        <Link href={`/dupes/${dupe.id}`} className="block space-y-3">
-          {/* Both polishes side by side */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <PolishSwatch
-                hexColor={a.hex_color}
-                hexSecondary={a.hex_secondary}
-                imageUrl={a.images?.[0] ?? null}
-                size="md"
-              />
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">{a.brand.name}</p>
-                <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
-                  {a.name}
-                </p>
-              </div>
-            </div>
-
-            {/* Overall score pill */}
+    <Link
+      href={`/dupes/${dupe.id}`}
+      className="group block rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
+    >
+      {/* Split swatch area */}
+      <div className="aspect-2/1 relative flex">
+        {/* Polish A — left */}
+        <div className="w-1/2 h-full relative overflow-hidden">
+          {a.images?.[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={a.images[0]}
+              alt={a.name}
+              className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
             <div
-              className={cn(
-                'flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-bold',
-                overallPill(dupe.avg_overall)
-              )}
-            >
-              {dupe.avg_overall !== null ? formatScore(dupe.avg_overall) : '—'}
-            </div>
+              className="w-full h-full"
+              style={swatchStyle(a.hex_color, a.hex_secondary) as React.CSSProperties}
+            />
+          )}
+        </div>
 
-            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-              <div className="min-w-0 text-right">
-                <p className="text-xs text-muted-foreground truncate">{b.brand.name}</p>
-                <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
-                  {b.name}
-                </p>
-              </div>
-              <PolishSwatch
-                hexColor={b.hex_color}
-                hexSecondary={b.hex_secondary}
-                imageUrl={b.images?.[0] ?? null}
-                size="md"
-              />
-            </div>
-          </div>
+        {/* Polish B — right */}
+        <div className="w-1/2 h-full relative overflow-hidden">
+          {b.images?.[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={b.images[0]}
+              alt={b.name}
+              className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div
+              className="w-full h-full"
+              style={swatchStyle(b.hex_color, b.hex_secondary) as React.CSSProperties}
+            />
+          )}
+        </div>
 
-          {/* Score bars */}
-          <div className="space-y-1.5 pt-1">
-            <AccuracyScorebar label="Color" score={dupe.avg_color_accuracy} count={dupe.opinion_count} />
-            <AccuracyScorebar label="Finish" score={dupe.avg_finish_accuracy} count={dupe.opinion_count} />
-            <AccuracyScorebar label="Formula" score={dupe.avg_formula_accuracy} count={dupe.opinion_count} />
-          </div>
+        {/* Score pill — centered on the dividing line */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className={cn(
+            'rounded-full px-2.5 py-1 text-xs font-black shadow-md',
+            scorePill(dupe.avg_overall)
+          )}>
+            {dupe.avg_overall !== null ? formatScore(dupe.avg_overall) : '—'}
+          </span>
+        </div>
+      </div>
 
-          <p className="text-xs text-muted-foreground text-right">
-            {dupe.opinion_count} opinion{dupe.opinion_count !== 1 ? 's' : ''}
-          </p>
-        </Link>
-      </CardContent>
-    </Card>
+      {/* Polish names */}
+      <div className="p-3 grid grid-cols-2 gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground truncate">{a.brand.name}</p>
+          <p className="text-xs font-bold truncate group-hover:text-primary transition-colors">{a.name}</p>
+        </div>
+        <div className="min-w-0 text-right">
+          <p className="text-[10px] text-muted-foreground truncate">{b.brand.name}</p>
+          <p className="text-xs font-bold truncate group-hover:text-primary transition-colors">{b.name}</p>
+        </div>
+      </div>
+
+      {/* Opinion count */}
+      <p className="px-3 pb-3 text-[10px] text-muted-foreground text-center -mt-1">
+        {dupe.opinion_count} {dupe.opinion_count === 1 ? 'opinion' : 'opinions'}
+      </p>
+    </Link>
   )
 }
