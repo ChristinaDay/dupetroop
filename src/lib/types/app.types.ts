@@ -24,6 +24,15 @@ export type PolishWithBrand = Polish & {
   collection: Collection | null
 }
 
+export type FeaturedSourceType = 'reddit' | 'instagram' | 'tiktok' | 'admin'
+
+export type FeaturedPolish = PolishWithBrand & {
+  is_featured: boolean
+  featured_rank: number | null
+  featured_source_type: FeaturedSourceType | null
+  featured_source_url: string | null
+}
+
 export type DupeWithPolishes = Dupe & {
   polish_a: PolishWithBrand
   polish_b: PolishWithBrand

@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { ArrowRight, Sparkles, TrendingUp, Users } from 'lucide-react'
+import { ArrowRight, Flame, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DupeCard } from '@/components/dupe/DupeCard'
 import { PolishCard } from '@/components/polish/PolishCard'
+import { TrendingPolishCard } from '@/components/polish/TrendingPolishCard'
 import { getFeaturedDupes, getRecentDupes } from '@/lib/queries/dupes'
-import { getPolishes } from '@/lib/queries/polishes'
+import { getPolishes, getFeaturedPolishes } from '@/lib/queries/polishes'
 import { finishLabel } from '@/lib/utils/format'
 import type { FinishCategory } from '@/lib/types/app.types'
 import { HeroSearch } from '@/components/search/HeroSearch'
@@ -35,7 +36,8 @@ const COLOR_FAMILIES: { color: string; hex: string; label: string }[] = [
 ]
 
 export default async function HomePage() {
-  const [featuredDupes, recentDupes, newPolishes] = await Promise.all([
+  const [featuredPolishes, featuredDupes, recentDupes, newPolishes] = await Promise.all([
+    getFeaturedPolishes(6).catch(() => []),
     getFeaturedDupes(6).catch(() => []),
     getRecentDupes(4).catch(() => []),
     getPolishes({ sort: 'newest' }).then(r => r.polishes.slice(0, 4)).catch(() => []),
@@ -75,6 +77,33 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Trending Now */}
+      {featuredPolishes.length > 0 && (
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+            <div className="flex items-center gap-2 mb-6">
+              <Flame className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black tracking-tight">Trending Now</h2>
+              <div className="hidden sm:flex items-center gap-1.5 ml-2">
+                {(['reddit', 'instagram', 'tiktok'] as const).map(src => (
+                  <span
+                    key={src}
+                    className="rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-border"
+                  >
+                    {src}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {featuredPolishes.map(polish => (
+                <TrendingPolishCard key={polish.id} polish={polish} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Browse */}
       <section className="border-b border-border">

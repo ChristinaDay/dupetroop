@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { PolishWithBrand, PolishFilters } from '@/lib/types/app.types'
+import type { PolishWithBrand, FeaturedPolish, PolishFilters } from '@/lib/types/app.types'
 
 const POLISH_SELECT = `
   *,
@@ -88,6 +88,21 @@ export async function getPolishBySlug(
     .single()
 
   return data as unknown as PolishWithBrand | null
+}
+
+export async function getFeaturedPolishes(limit = 6): Promise<FeaturedPolish[]> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+  const { data } = await db
+    .from('polishes')
+    .select(POLISH_SELECT)
+    .eq('is_verified', true)
+    .eq('is_featured', true)
+    .order('featured_rank', { ascending: true, nullsFirst: false })
+    .limit(limit)
+
+  return (data as unknown as FeaturedPolish[]) ?? []
 }
 
 export async function searchPolishes(q: string): Promise<PolishWithBrand[]> {
