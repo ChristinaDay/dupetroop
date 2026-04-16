@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X, Sparkles, Search, ChevronDown, User, BookOpen } from 'lucide-react'
+import { Menu, X, Sparkles, Search, ChevronDown, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SearchModal } from '@/components/search/SearchModal'
@@ -77,10 +77,10 @@ export function Header({ user, username }: HeaderProps) {
         <div className="bg-primary text-primary-foreground text-center py-2 px-4 text-xs font-medium tracking-wide">
           Find dupes, discover recipes, track your stash —{' '}
           <Link
-            href="/looks"
+            href="/polishes"
             className="font-bold underline underline-offset-2 hover:opacity-80 transition-opacity"
           >
-            browse looks
+            browse polishes
           </Link>
         </div>
 
@@ -100,18 +100,6 @@ export function Header({ user, username }: HeaderProps) {
 
               {/* Desktop nav */}
               <nav className="hidden md:flex items-center">
-
-                {/* Looks */}
-                <Link
-                  href="/looks"
-                  className={cn(
-                    'flex items-center gap-1.5 px-4 py-5 text-sm font-medium transition-colors hover:text-primary',
-                    pathname.startsWith('/looks') ? 'text-primary' : 'text-muted-foreground'
-                  )}
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  Looks
-                </Link>
 
                 {/* Polishes dropdown */}
                 <div
@@ -372,17 +360,6 @@ export function Header({ user, username }: HeaderProps) {
         {mobileOpen && (
           <div className="md:hidden border-b border-border bg-background">
             <nav className="mx-auto max-w-7xl px-4 pb-5 pt-3 flex flex-col gap-4">
-
-              {/* Looks */}
-              <div>
-                <Link
-                  href="/looks"
-                  className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold hover:bg-accent transition-colors"
-                >
-                  <BookOpen className="h-4 w-4 text-primary" />
-                  Looks
-                </Link>
-              </div>
 
               {/* Polishes */}
               <div className="border-t border-border pt-3">

@@ -465,6 +465,66 @@ Replaced the two disconnected sections ("Dupes" and "Combination Recipes") with 
 
 ---
 
+## Session 8 — April 16, 2026
+
+### Product vision rethink: Stash as personal dashboard + Looks removal
+
+A deep design session that reoriented several core concepts.
+
+#### The entry point is search, not browsing
+
+The canonical user journey starts with a specific polish in mind — the user saw something on Reddit, saved it, and comes to DupeTroop to understand their options. They search for the polish by name, land on its detail page, and the page does the work of showing them the full option space: single-bottle swaps rated by the community, and combination recipes with all component alternatives surfaced inline.
+
+This means the `/looks` browse grid doesn't serve a real use case. A recipe only makes sense in the context of the specific polish it targets — browsing a decontextualised list of named looks is not how anyone actually uses this information.
+
+#### Looks removed as a standalone content type
+
+- Removed `/looks` browse page (`src/app/looks/page.tsx`)
+- Removed "Looks" from nav (desktop + mobile)
+- Removed "Trending Now" section from homepage
+- Removed "Browse all" link from polish detail page
+- `/looks/[lookId]` detail page kept temporarily — the polish detail page still links to it. Will be folded into the polish page when the recipe section is redesigned to show the full component alternatives matrix.
+
+#### Site framing realigned around discovery
+
+- Announcement bar, homepage hero CTAs, and bottom CTA section updated to lead with discovery and the stash feature rather than dupe submission
+- "Submit a Dupe" removed from nav, dropdown, mobile menu, and footer
+- Inline stub creation removed from `/dupes/submit` (was a sparse-DB workaround, no longer needed)
+- Footer nav updated: Looks → Polishes → Dupes → Brands → My Stash
+
+#### Stash becomes the personal dashboard
+
+The stash concept was expanded significantly. Key decisions:
+
+**"My Stash" is the personality-forward name for the user's personal dashboard.** It manages their entire relationship with polishes, not just what they own.
+
+**Three fixed top-level states:**
+- **Owned** — polishes in their collection; powers the "you can make this today" recipe cross-referencing
+- **Wishlist** — purchase intent; polishes they're planning to buy
+- **Bookmarked** — neutral reference; polishes they're tracking, researching, or comparing
+
+**User-defined nested groups within each state** — fully customizable, like a digital Helmer drawer. Users organize their collection the way they would physically: by brand, finish, occasion, or any grouping that makes sense to them.
+
+**Any polish can be added to the stash from any card**, with a state picker (Owned / Wishlist / Bookmarked) on interaction.
+
+**The "you can make this today" logic only fires against Owned items.** Wishlisted and bookmarked polishes are reference-only.
+
+#### What this means for the recipe/component model
+
+The next major feature work on the polish detail page is to replace the current single-`best_dupe`-per-component display with the full alternatives matrix — so a recipe step shows all known swaps for that component, not just the cheapest one. This is the "matrix" from the original Bloodbender example: not just "House of Hades + Scorchy" but "[House of Hades / Casa de Heaven / ...] + Scorchy."
+
+### Still to do (next priorities)
+
+- [ ] Stash overhaul — add `status` field (owned/wishlist/bookmarked) + user-defined nested groups to `stash_items`; redesign stash page as a tabbed personal dashboard
+- [ ] Bookmark/add-to-stash interaction on all cards — state picker (Owned / Wishlist / Bookmarked)
+- [ ] Polish detail page: recipe section redesign — surface full component alternatives matrix, fold `/looks/[lookId]` into the page
+- [ ] Profile page for other users (`/profile/[username]`)
+- [ ] "Report" button on opinions for moderation
+- [ ] Brand management UI in admin
+- [ ] Open Graph images for polish/dupe pages
+
+---
+
 ## How to Run Locally
 
 ```bash

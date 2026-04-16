@@ -177,16 +177,9 @@ export default async function PolishDetailPage({ params }: PageProps) {
 
         {/* Combination recipes */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-base font-bold">Combination recipes</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Multi-polish layering techniques that recreate this look</p>
-            </div>
-            {looks.length > 0 && (
-              <Button asChild size="sm" variant="outline">
-                <Link href="/looks">Browse all</Link>
-              </Button>
-            )}
+          <div className="mb-4">
+            <h3 className="text-base font-bold">Combination recipes</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Multi-polish layering techniques that recreate this look</p>
           </div>
           {looks.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
