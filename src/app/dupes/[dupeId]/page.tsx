@@ -8,6 +8,7 @@ import { DupePolishColumn } from '@/components/dupe/DupePolishColumn'
 import { DupeCard } from '@/components/dupe/DupeCard'
 import { OpinionCard } from '@/components/opinion/OpinionCard'
 import { CollapsibleOpinionForm } from '@/components/opinion/CollapsibleOpinionForm'
+import { AdminDeleteDupeButton } from '@/components/admin/AdminDeleteDupeButton'
 import { Button } from '@/components/ui/button'
 import { formatScore } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
@@ -51,11 +52,14 @@ export default async function DupeDetailPage({ params }: PageProps) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [dupe, opinions, userOpinion] = await Promise.all([
+  const [dupe, opinions, userOpinion, profile] = await Promise.all([
     getDupeById(dupeId),
     getOpinionsForDupe(dupeId, user?.id),
     user ? getUserOpinionForDupe(dupeId, user.id) : null,
+    user ? supabase.from('profiles').select('role').eq('id', user.id).single().then(r => r.data) : null,
   ])
+
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'moderator'
 
   if (!dupe || dupe.status !== 'approved') notFound()
 
@@ -67,10 +71,13 @@ export default async function DupeDetailPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10">
       {/* Breadcrumb */}
-      <nav className="text-sm text-muted-foreground mb-8 flex items-center gap-2">
-        <Link href="/dupes" className="hover:text-foreground">Dupes</Link>
-        <span>/</span>
-        <span className="text-foreground font-medium">{a.name} × {b.name}</span>
+      <nav className="text-sm text-muted-foreground mb-8 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Link href="/dupes" className="hover:text-foreground">Dupes</Link>
+          <span>/</span>
+          <span className="text-foreground font-medium">{a.name} × {b.name}</span>
+        </div>
+        {isAdmin && <AdminDeleteDupeButton dupeId={dupeId} />}
       </nav>
 
       {/* Split gallery hero */}
@@ -79,36 +86,36 @@ export default async function DupeDetailPage({ params }: PageProps) {
         <DupePolishColumn polish={b} role="dupe" />
       </div>
 
-      {/* Lightweight score strip */}
-      <div className="border-y border-border py-6 mb-10">
-        <div className="flex items-center justify-around">
-          <ScorePill label="Color" score={dupe.avg_color_accuracy} />
-          <div className="h-8 w-px bg-border" />
-          <ScorePill label="Finish" score={dupe.avg_finish_accuracy} />
-          <div className="h-8 w-px bg-border" />
-          <ScorePill label="Formula" score={dupe.avg_formula_accuracy} />
-          <div className="h-8 w-px bg-border" />
-          <div className="flex flex-col items-center gap-0.5">
-            <span className={cn(
-              'text-xl font-black tabular-nums',
-              dupe.avg_overall === null ? 'text-muted-foreground' : dupe.avg_overall >= 4 ? 'text-emerald-600 dark:text-emerald-400' : dupe.avg_overall >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
-            )}>
-              {dupe.avg_overall !== null ? formatScore(dupe.avg_overall) : '—'}
-            </span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Overall</span>
+      {/* Score strip — only shown when ratings exist */}
+      {dupe.avg_overall !== null && (
+        <div className="border-y border-border py-6 mb-10">
+          <div className="flex items-center justify-around">
+            <ScorePill label="Color" score={dupe.avg_color_accuracy} />
+            <div className="h-8 w-px bg-border" />
+            <ScorePill label="Finish" score={dupe.avg_finish_accuracy} />
+            <div className="h-8 w-px bg-border" />
+            <ScorePill label="Formula" score={dupe.avg_formula_accuracy} />
+            <div className="h-8 w-px bg-border" />
+            <div className="flex flex-col items-center gap-0.5">
+              <span className={cn(
+                'text-xl font-black tabular-nums',
+                dupe.avg_overall >= 4 ? 'text-emerald-600 dark:text-emerald-400' : dupe.avg_overall >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
+              )}>
+                {formatScore(dupe.avg_overall)}
+              </span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Overall</span>
+            </div>
           </div>
-        </div>
-        {dupe.opinion_count > 0 && (
           <p className="text-center text-xs text-muted-foreground mt-3">
             Based on {dupe.opinion_count} {dupe.opinion_count === 1 ? 'opinion' : 'opinions'}
           </p>
-        )}
-        {dupe.notes && (
-          <p className="text-center text-sm italic text-muted-foreground mt-3 max-w-md mx-auto">
-            &ldquo;{dupe.notes}&rdquo;
-          </p>
-        )}
-      </div>
+          {dupe.notes && (
+            <p className="text-center text-sm italic text-muted-foreground mt-3 max-w-md mx-auto">
+              &ldquo;{dupe.notes}&rdquo;
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Opinion form */}
       <div className="mb-10">

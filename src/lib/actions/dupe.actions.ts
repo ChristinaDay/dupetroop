@@ -155,6 +155,47 @@ export async function createApprovedDupe(formData: {
   return { dupeId: data.id }
 }
 
+export async function deleteDupe(dupeId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['admin', 'moderator'].includes(profile.role)) {
+    return { error: 'Unauthorized' }
+  }
+
+  // Fetch polish IDs and current dupe_count before deleting
+  const { data: dupe } = await supabase
+    .from('dupes')
+    .select('polish_a_id, polish_b_id, status')
+    .eq('id', dupeId)
+    .single()
+
+  if (!dupe) return { error: 'Dupe not found' }
+
+  const { error } = await supabase.from('dupes').delete().eq('id', dupeId)
+  if (error) return { error: error.message }
+
+  // Decrement dupe_count on both polishes if this was an approved pair
+  if (dupe.status === 'approved') {
+    await Promise.all([
+      supabase.rpc('decrement_dupe_count', { polish_id: dupe.polish_a_id }),
+      supabase.rpc('decrement_dupe_count', { polish_id: dupe.polish_b_id }),
+    ])
+  }
+
+  revalidatePath('/dupes')
+  revalidatePath('/admin/dupes')
+  return {}
+}
+
 export async function rejectDupe(
   dupeId: string,
   reason: string
