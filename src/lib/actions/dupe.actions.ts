@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function submitDupe(formData: {
   polishAId: string
@@ -180,7 +180,9 @@ export async function deleteDupe(dupeId: string): Promise<{ error?: string }> {
 
   if (!dupe) return { error: 'Dupe not found' }
 
-  const { error } = await supabase.from('dupes').delete().eq('id', dupeId)
+  // Use service role client to bypass RLS for the delete
+  const adminClient = createAdminClient()
+  const { error } = await adminClient.from('dupes').delete().eq('id', dupeId)
   if (error) return { error: error.message }
 
   // Decrement dupe_count on both polishes if this was an approved pair
