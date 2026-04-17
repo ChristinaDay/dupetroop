@@ -513,6 +513,90 @@ async function fetchEssieProducts(brandId) {
   return polishes
 }
 
+// ─── Starrily — plain tag parser (no finish:/color: prefixes) ────────────────
+
+const STARRILY_FINISH_TAGS = [
+  // Ordered most-specific first
+  ['multichrome flakes', 'multichrome'],
+  ['multichrome',        'multichrome'],
+  ['cat eye',            'magnetic'],
+  ['magnetic',           'magnetic'],
+  ['holodescent',        'multichrome'],
+  ['linear holographic', 'holo'],
+  ['linear holo',        'holo'],
+  ['holographic',        'holo'],
+  ['holo top coat',      'topper'],
+  ['holo',               'holo'],
+  ['flakes',             'flakies'],
+  ['glitter',            'glitter'],
+  ['foil',               'shimmer'],
+  ['metallic',           'shimmer'],
+  ['shimmer',            'shimmer'],
+  ['jelly',              'jelly'],
+  ['matte',              'matte'],
+  ['topper',             'topper'],
+  ['effect topper',      'topper'],
+  ['creme',              'cream'],
+  ['solid',              'cream'],
+]
+
+const STARRILY_COLOR_MAP = {
+  red: 'red', pink: 'pink', 'baby pink': 'pink', 'light pink': 'pink',
+  blue: 'blue', teal: 'green', green: 'green', purple: 'purple',
+  orange: 'orange', yellow: 'yellow', gold: 'yellow',
+  black: 'black', white: 'neutral', silver: 'neutral',
+  brown: 'neutral', 'multi colored': 'neutral',
+}
+
+const STARRILY_COLOR_HEX = {
+  red: '#CC1B2E', pink: '#E03880', blue: '#2458B8', teal: '#2A8A7A',
+  green: '#2E7D4A', purple: '#6B2EA0', orange: '#E8602C', yellow: '#E8B424',
+  gold: '#C8A832', black: '#111111', white: '#F8F8F8', silver: '#C8C8D0',
+  brown: '#8B5E3C', neutral: '#B8A8A0',
+}
+
+function parseStarrilyTags(rawTags) {
+  const tags = (rawTags || []).map(t => t.toLowerCase())
+  const isLimited = tags.some(t => ['limited', 'limited edition', 'le'].includes(t))
+
+  let finish = 'other'
+  for (const [tag, mapped] of STARRILY_FINISH_TAGS) {
+    if (tags.some(t => t.includes(tag))) { finish = mapped; break }
+  }
+  // Fall back to name-based inference at call site if still 'other'
+
+  let colorFamily = 'neutral'
+  let hex = '#888888'
+  for (const [tag, family] of Object.entries(STARRILY_COLOR_MAP)) {
+    if (tags.includes(tag)) {
+      colorFamily = family
+      hex = STARRILY_COLOR_HEX[tag] ?? STARRILY_COLOR_HEX[family] ?? '#888888'
+      break
+    }
+  }
+
+  return { finish, hex, colorFamily, isLimited }
+}
+
+function starrilyProductToPolish(product, brandId, msrp) {
+  const { finish: tagFinish, hex, colorFamily, isLimited } = parseStarrilyTags(product.tags)
+  const finish = tagFinish !== 'other' ? tagFinish : finishFromName(product.title)
+  const image = product.images?.[0]?.src ?? null
+  const record = {
+    brand_id:        brandId,
+    name:            product.title,
+    slug:            product.handle,
+    hex_color:       hex,
+    finish_category: finish,
+    color_family:    colorFamily,
+    msrp_usd:        msrp,
+    is_verified:     true,
+    is_limited:      isLimited,
+  }
+  if (image) record.images = [image]
+  return record
+}
+
 // ─── Manually curated ─────────────────────────────────────────────────────────
 
 function manual(brandId, products) {
@@ -767,6 +851,29 @@ async function run() {
     try {
       const products = await fetchShopifyAllProducts('unomascolors.com')
       const polishes = products.map(p => shopifyProductToPolish(p, brandId['uno-mas-colors'], 12))
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
+  // ── Starrily (Shopify — open API) ────────────────────────────────────────────
+  if (should('starrily')) {
+    process.stdout.write('Fetching Starrily (full catalog)... ')
+    try {
+      const allProducts = await fetchShopifyAllProducts('www.starrily.com')
+      // Filter out non-polish items: pins, stickers, and collection bundle pages
+      const NON_POLISH_TYPES = ['pin', 'sticker', 'accessory']
+      const products = allProducts.filter(p => {
+        const pt = (p.product_type ?? '').toLowerCase()
+        if (NON_POLISH_TYPES.some(t => pt.includes(t))) return false
+        // Collection bundle pages have " Collection" at end of title and no finish tags
+        if (/\bCollection\b/i.test(p.title) && !(p.tags ?? []).some(t =>
+          ['holo', 'shimmer', 'glitter', 'magnetic', 'multichrome', 'flakes', 'jelly', 'creme', 'solid', 'matte'].includes(t.toLowerCase())
+        )) return false
+        return true
+      })
+      const polishes = products.map(p => starrilyProductToPolish(p, brandId['starrily'], 13))
       console.log(`${polishes.length} polishes`)
       if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
       else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} ${p.name}`))
