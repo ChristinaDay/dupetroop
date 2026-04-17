@@ -880,6 +880,41 @@ async function run() {
     } catch (e) { console.error('\n  Error:', e.message) }
   }
 
+  // ── Cracked (Shopify — open API, finish inferred from name) ──────────────────
+  if (should('cracked')) {
+    process.stdout.write('Fetching Cracked (full catalog)... ')
+    try {
+      const allProducts = await fetchShopifyAllProducts('crackedpolish.com', 'nail-polish')
+      const products = allProducts.filter(p => {
+        const tags = (p.tags ?? []).map(t => t.toLowerCase())
+        // Exclude multi-polish collection bundles (tagged 'collection')
+        if (tags.includes('collection')) return false
+        return true
+      })
+      const polishes = products.map(p => {
+        const finish = finishFromName(p.title)
+        const price = parseFloat(p.variants?.[0]?.price ?? '12')
+        const image = p.images?.[0]?.src ?? null
+        const record = {
+          brand_id:        brandId['cracked'],
+          name:            p.title,
+          slug:            p.handle,
+          hex_color:       '#888888',
+          finish_category: finish,
+          color_family:    'neutral',
+          msrp_usd:        price,
+          is_verified:     true,
+          is_limited:      false,
+        }
+        if (image) record.images = [image]
+        return record
+      })
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} $${p.msrp_usd}  ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
   if (!DRY_RUN) {
     console.log(`\n✓ Total upserted: ${totalUpserted}`)
   }

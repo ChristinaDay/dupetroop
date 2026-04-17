@@ -29,6 +29,7 @@ const brands = [
   { name: 'Zoya', slug: 'zoya', website_url: 'https://zoya.com', is_indie: false, price_tier: 2, country_of_origin: 'US' },
   { name: 'Uno Mas Colors', slug: 'uno-mas-colors', website_url: 'https://unomascolors.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
   { name: 'Starrily', slug: 'starrily', website_url: 'https://starrily.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
+  { name: 'Cracked', slug: 'cracked', website_url: 'https://crackedpolish.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
 ]
 
 // ─── POLISHES ─────────────────────────────────────────────────────────────────
