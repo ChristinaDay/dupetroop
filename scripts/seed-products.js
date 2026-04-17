@@ -49,6 +49,7 @@ const NON_POLISH_KEYWORDS = [
   'sticker', 'nail art', 'replacement', 'brush', 'spatula', 'duo', 'trio',
   'quad', 'thinner', 'dropper', 'refill', 'prep pad', 'nail glue',
   'acetone', 'cleanser', 'dehydrator', 'nail polish remover', 'cuticle oil',
+  'stanley', 'tumbler', 'mug',
 ]
 
 const NON_POLISH_PRODUCT_TYPES = [
@@ -941,6 +942,102 @@ async function run() {
         if (image) record.images = [image]
         return record
       })
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} $${p.msrp_usd}  ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
+  // ── Bee's Knees Lacquer (Shopify — finish from description + magnetic collection)
+  // Tags are fandom/theme-based only. Finish is in the product body_html description.
+  if (should('bees-knees-lacquer')) {
+    // Step 1: fetch mosaic-magnetics collection for reliable magnetic detection
+    process.stdout.write("Fetching Bee's Knees finish map (mosaic-magnetics)... ")
+    const bklMagneticHandles = new Set()
+    try {
+      const res = await fetch('https://www.beeskneeslacquer.com/collections/mosaic-magnetics/products.json?limit=250', { headers: HEADERS })
+      if (res.ok) {
+        const { products } = await res.json()
+        for (const p of products) bklMagneticHandles.add(p.handle)
+      }
+      console.log(`${bklMagneticHandles.size} magnetic handles`)
+    } catch (e) { console.error('\n  Error:', e.message) }
+
+    process.stdout.write("Fetching Bee's Knees Lacquer (full catalog)... ")
+    try {
+      const allProducts = await fetchShopifyAllProducts('www.beeskneeslacquer.com')
+
+      // Filter out nail care / non-polish products and high-price collection bundles
+      const products = allProducts.filter(p => {
+        const tags = (p.tags ?? []).map(t => t.toLowerCase())
+        if (tags.includes('nail care') || tags.includes('self care')) return false
+        const price = parseFloat(p.variants?.[0]?.price ?? '0')
+        if (price > 30) return false // collection bundles are $45–143
+        return isActualPolish(p.title, p.product_type ?? '')
+      })
+
+      const polishes = products.map(p => {
+        const tags = (p.tags ?? []).map(t => t.toLowerCase())
+        const rawDesc = p.body_html?.replace(/<[^>]+>/g, ' ') ?? ''
+        const desc = rawDesc.toLowerCase()
+        const price = parseFloat(p.variants?.[0]?.price ?? '14')
+        const image = p.images?.[0]?.src ?? null
+
+        // Finish: magnetic collection first, then description keywords
+        let finish = 'other'
+        if (bklMagneticHandles.has(p.handle) || desc.includes('mosaic magnetic') || desc.includes('magnetic')) {
+          finish = 'magnetic'
+        } else if (desc.includes('multichrome') || desc.includes('multi-chrome')) {
+          finish = 'multichrome'
+        } else if (desc.includes('holographic') || desc.includes(' holo ') || desc.includes('holo flake') || desc.includes('linear holo')) {
+          finish = 'holo'
+        } else if (desc.includes('flakie') || desc.includes('flake')) {
+          finish = 'flakies'
+        } else if (desc.includes('glitter')) {
+          finish = 'glitter'
+        } else if (desc.includes('shimmer') || desc.includes('duochrome') || desc.includes('duo-chrome')
+                   || desc.includes('metallic') || desc.includes('foil') || desc.includes('shifts')
+                   || /\bUP\b/.test(rawDesc)) {
+          finish = 'shimmer'
+        } else if (desc.includes('jelly') || desc.includes('crelly')) {
+          finish = 'jelly'
+        } else if (desc.includes('matte')) {
+          finish = 'matte'
+        } else if (desc.includes('topper') || desc.includes('top coat')) {
+          finish = 'topper'
+        } else if (desc.includes('cream') || desc.includes('creme') || desc.includes('crème')) {
+          finish = 'cream'
+        }
+        if (finish === 'other') finish = finishFromName(p.title)
+
+        // Color: scan description for color words
+        const COLOR_WORDS = [
+          ['black', 'black'], ['white', 'neutral'], ['gray', 'neutral'], ['grey', 'neutral'],
+          ['silver', 'neutral'], ['gold', 'yellow'], ['yellow', 'yellow'], ['orange', 'orange'],
+          ['red', 'red'], ['pink', 'pink'], ['magenta', 'pink'], ['purple', 'purple'],
+          ['violet', 'purple'], ['blue', 'blue'], ['teal', 'green'], ['green', 'green'],
+          ['olive', 'green'], ['brown', 'neutral'], ['nude', 'neutral'], ['coral', 'pink'],
+        ]
+        let colorFamily = 'neutral'
+        for (const [word, family] of COLOR_WORDS) {
+          if (desc.includes(word)) { colorFamily = family; break }
+        }
+
+        const record = {
+          brand_id:        brandId['bees-knees-lacquer'],
+          name:            p.title,
+          slug:            p.handle,
+          hex_color:       COLOR_HEX_MAP[colorFamily] ?? '#888888',
+          finish_category: finish,
+          color_family:    colorFamily,
+          msrp_usd:        price,
+          is_verified:     true,
+          is_limited:      true, // BKL releases are all limited edition
+        }
+        if (image) record.images = [image]
+        return record
+      })
+
       console.log(`${polishes.length} polishes`)
       if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
       else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} $${p.msrp_usd}  ${p.name}`))
