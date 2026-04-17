@@ -604,6 +604,18 @@ async function run() {
     if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
   }
 
+  // ── Uno Mas Colors (Shopify — open API) ──────────────────────────────────────
+  if (should('uno-mas-colors')) {
+    process.stdout.write('Fetching Uno Mas Colors (full catalog)... ')
+    try {
+      const products = await fetchShopifyAllProducts('unomascolors.com')
+      const polishes = products.map(p => shopifyProductToPolish(p, brandId['uno-mas-colors'], 12))
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
   if (!DRY_RUN) {
     console.log(`\n✓ Total upserted: ${totalUpserted}`)
   }

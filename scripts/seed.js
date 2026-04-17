@@ -28,6 +28,7 @@ const brands = [
   { name: 'Essie', slug: 'essie', website_url: 'https://essie.com', is_indie: false, price_tier: 2, country_of_origin: 'US' },
   { name: 'Sally Hansen', slug: 'sally-hansen', website_url: 'https://sallyhansen.com', is_indie: false, price_tier: 1, country_of_origin: 'US' },
   { name: 'Zoya', slug: 'zoya', website_url: 'https://zoya.com', is_indie: false, price_tier: 2, country_of_origin: 'US' },
+  { name: 'Uno Mas Colors', slug: 'uno-mas-colors', website_url: 'https://unomascolors.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
 ]
 
 // ─── POLISHES ─────────────────────────────────────────────────────────────────
