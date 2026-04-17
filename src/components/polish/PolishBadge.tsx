@@ -7,16 +7,20 @@ interface PolishBadgeProps {
   className?: string
 }
 
-// Map finishes to visual variants
-const finishVariant = (finish: FinishCategory) => {
-  const vivid = ['holo', 'multichrome', 'duochrome', 'glitter', 'flakies']
-  if (vivid.includes(finish)) return 'default' as const
-  return 'secondary' as const
-}
+const ELECTRIC_FINISHES = ['holo', 'multichrome', 'duochrome', 'glitter', 'flakies']
 
 export function PolishBadge({ finish, className }: PolishBadgeProps) {
+  if (ELECTRIC_FINISHES.includes(finish)) {
+    return (
+      <Badge
+        className={`bg-electric/15 text-electric-foreground border-electric/30 hover:bg-electric/20 ${className ?? ''}`}
+      >
+        {finishLabel(finish)}
+      </Badge>
+    )
+  }
   return (
-    <Badge variant={finishVariant(finish)} className={className}>
+    <Badge variant="secondary" className={className}>
       {finishLabel(finish)}
     </Badge>
   )

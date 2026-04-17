@@ -46,14 +46,14 @@ export default async function HomePage() {
     getFeaturedPolishes(6).catch(() => []),
     getFeaturedDupes(6).catch(() => []),
     getRecentDupes(4).catch(() => []),
-    getPolishes({ sort: 'newest' }).then(r => r.polishes.slice(0, 4)).catch(() => []),
+    getPolishes({ sort: 'newest', discontinued: false }).then(r => r.polishes.slice(0, 4)).catch(() => []),
     user ? getUserStashMap(user.id) : Promise.resolve({} as Record<string, { id: string; status: StashStatus }>),
   ])
 
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="border-b border-border bg-background overflow-hidden">
+      <section className="border-b border-border hero-bg overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-14">
           <div className="flex flex-col gap-5">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
@@ -88,7 +88,7 @@ export default async function HomePage() {
         <section className="border-b border-border">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex items-center gap-3 mb-6">
-              <Flame className="h-5 w-5 text-primary shrink-0" />
+              <Flame className="h-5 w-5 text-electric shrink-0" />
               <h2 className="font-display font-black uppercase tracking-tight text-4xl leading-none">Trending Now</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

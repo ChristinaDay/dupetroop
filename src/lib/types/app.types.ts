@@ -146,6 +146,7 @@ export type PolishFilters = {
   q?: string
   sort?: 'newest' | 'most_dupes' | 'name_asc'
   page?: number
+  discontinued?: boolean
 }
 
 export type DupeFilters = {

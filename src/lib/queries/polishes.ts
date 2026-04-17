@@ -23,6 +23,10 @@ export async function getPolishes(filters: PolishFilters = {}): Promise<{
     .select(POLISH_SELECT, { count: 'exact' })
     .eq('is_verified', true)
 
+  if (filters.discontinued === false) {
+    query = query.eq('is_discontinued', false)
+  }
+
   if (filters.brand) {
     const { data: brand } = await supabase
       .from('brands')

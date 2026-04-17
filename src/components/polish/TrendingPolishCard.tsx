@@ -74,7 +74,7 @@ export function TrendingPolishCard({ polish }: TrendingPolishCardProps) {
               <span className="text-xs text-muted-foreground italic">discontinued</span>
             )}
             {polish.is_limited && (
-              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Limited Edition</span>
+              <span className="text-xs font-semibold text-electric">Limited Edition</span>
             )}
           </div>
           <div className="flex items-center gap-3 mt-2">
