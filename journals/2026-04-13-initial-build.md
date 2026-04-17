@@ -934,6 +934,88 @@ node --env-file=.env.local scripts/suggest-dupes-ai.js --brand=mooncat --top=5 -
 
 ---
 
+## Session 16 — April 17, 2026
+
+### What was completed
+
+#### Electric yellow accent color
+
+Added `--electric` (`oklch(0.92 0.28 100)`) and `--electric-foreground` (`oklch(0.2 0.08 100)`) as CSS custom properties in both `:root` and `.dark`, registered as `--color-electric` / `--color-electric-foreground` in `@theme inline` so they're available as Tailwind utilities (`text-electric`, `bg-electric`, etc.).
+
+**Where it's used:**
+- `Flame` icon in the "Trending Now" section header → `text-electric` (fire reads as yellow, not magenta)
+- "Limited Edition" label on `TrendingPolishCard` → `text-electric` (electric/rare, replaces amber)
+- Vivid finish badges — holo, multichrome, duochrome, glitter, flakies — get a yellow-tinted pill (`bg-electric/15 text-electric-foreground border-electric/30`) instead of the magenta `default` badge variant; cream/shimmer/matte/etc. stay as neutral secondary
+- New `electric` Button variant: `bg-electric text-electric-foreground hover:bg-electric/85`
+- Bottom homepage CTA "Create a free account" button switched from manual `bg-primary` to `variant="electric"` — pops much harder against the dark `bg-foreground` section
+
+#### Hero gradient background
+
+Replaced flat `bg-background` on the hero section with a `.hero-bg` CSS class defined in `@layer base`. Three-point radial gradient:
+- **Top-left**: magenta/primary glow (matches brand primary)
+- **Top-right**: neon yellow glow (electric accent)
+- **Bottom-right**: teal/cyan counter-accent
+
+Dark mode values are more vivid (28% / 22% / 32% opacity vs 12% / 14% / 18% in light). Uses raw `oklch()` values in the gradient rather than CSS variables since CSS variables don't interpolate inside gradient functions.
+
+**Why `@layer base` instead of `@utility`:** Attempted `@utility hero-bg { &:is(.dark *) { ... } }` first — Tailwind v4 doesn't reliably process nested dark-mode selectors inside `@utility` blocks. Plain `.hero-bg` / `.dark .hero-bg` in `@layer base` works correctly.
+
+#### PolishBadge — hide 'other' finish
+
+`PolishBadge` returns `null` when `finish === 'other'`. Previously showed an uninformative "Other" pill. Added `ml-auto` to the price span in `PolishCard` so the price stays right-aligned when the badge is absent.
+
+#### Price reframed as reference info
+
+New `src/components/polish/PolishPrice.tsx` renders prices as `$X.XX retail` — the word "retail" in faded smaller text signals this is a reference price, not a purchase price (DupeTroop is not a shop). Replaces all direct `formatPrice()` display calls:
+- `PolishCard`, `TrendingPolishCard` (card grids)
+- `DupePolishColumn` (dupe detail hero)
+- `RecipeCard` (recipe ingredient rows)
+- Polish detail page header
+
+`formatPrice()` itself is unchanged — still used for collection value math in stash/profile.
+
+#### Hide empty rating info
+
+Dupe cards and the dupe detail page score strip are now fully hidden when `avg_overall` is null (no opinions yet). Previously showed "No ratings yet" and a row of `—` dashes. The page reads cleaner with just the photos and polish info until the community weighs in.
+
+#### Discontinued polishes filtered from homepage
+
+Added `discontinued?: boolean` to `PolishFilters` type and a corresponding `.eq('is_discontinued', false)` filter in `getPolishes()`. The homepage "New polishes" section passes `discontinued: false` — prevents discontinued polishes (e.g. Essie Celeb City) from floating to the top of the newest sort after a re-seed.
+
+#### Admin delete button on dupe detail page
+
+Added an admin-only "Delete dupe" button in the breadcrumb row of every dupe detail page (`/dupes/[dupeId]`).
+
+**`deleteDupe` server action** (`src/lib/actions/dupe.actions.ts`):
+- Verifies caller is admin/moderator via regular Supabase client
+- Uses `createAdminClient()` (service role key) for the actual DELETE to bypass RLS — the anon client was silently deleting 0 rows due to RLS policies
+- Decrements `dupe_count` on both polishes via `decrement_dupe_count` RPC if the pair was approved
+- Revalidates `/dupes` and `/admin/dupes`
+
+**`createAdminClient()`** added to `src/lib/supabase/server.ts` — creates a Supabase client with `SUPABASE_SERVICE_ROLE_KEY`, bypassing all RLS. Pattern: always verify auth/role first with the regular client, then use the admin client only for the privileged operation.
+
+**Migration 012** (`supabase/migrations/012_decrement_dupe_count.sql`) — atomic `GREATEST(dupe_count - 1, 0)` UPDATE, mirrors the existing `increment_dupe_count` function.
+
+**`AdminDeleteDupeButton`** (`src/components/admin/AdminDeleteDupeButton.tsx`) — client component with a two-step confirmation (shows "Are you sure?" inline before firing). Redirects to `/dupes` on success.
+
+#### Homepage browse sections removed
+
+Removed the "Browse by finish" tile row and "Browse by color" dot row from the homepage. Both were shortcuts to `/polishes?finish=X` and `/polishes?color=X` — filters that already live on the `/polishes` page. Given that search is the primary entry point and the hero already has a search bar + browse buttons, these sections added noise without community signal. Also cleaned up the now-unused `FINISH_TILES`, `COLOR_FAMILIES` constants and `finishLabel` import from `page.tsx`.
+
+#### Submit a swap — navigation and homepage
+
+Added "Submit a swap →" in two new places:
+- **Dupes dropdown** (desktop and mobile) — at the bottom of the dropdown, separated by a divider, styled in `text-primary` to distinguish it from the browse links
+- **Homepage "Top-rated dupes" section header** — quiet `text-muted-foreground` text link ("Know a dupe? Submit one →") next to the "See all" button, visible to engaged scrollers without dominating the section
+
+### Still to do (nice-to-haves)
+
+- [ ] Email notifications when a submitted dupe/polish is approved or rejected
+- [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
+- [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
+
+---
+
 ## How to Run Locally
 
 ```bash
