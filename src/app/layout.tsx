@@ -32,10 +32,10 @@ export const metadata: Metadata = {
     template: '%s | DoopTroop',
   },
   description:
-    'Community-powered nail polish dupe tracker. Find exact matches for your favorite indie polishes and rate how accurate the dupes really are.',
+    'Nail polish dupe tracker. Find exact matches for your favorite indie polishes and rate how accurate the dupes really are.',
   openGraph: {
     title: 'DoopTroop',
-    description: 'Community-powered nail polish dupe tracker.',
+    description: 'Nail polish dupe tracker.',
     type: 'website',
   },
 }

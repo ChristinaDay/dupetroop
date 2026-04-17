@@ -15,7 +15,7 @@ export function Footer() {
             <Link href="/stash" className="hover:text-foreground transition-colors">My Stash</Link>
           </nav>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} DoopTroop. Community-powered.
+            © {new Date().getFullYear()} DupeTroop.
           </p>
         </div>
       </div>
