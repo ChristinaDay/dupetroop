@@ -72,6 +72,89 @@ export async function approveDupe(dupeId: string): Promise<{ error?: string }> {
   return {}
 }
 
+export async function bulkApproveDupes(dupeIds: string[]): Promise<{ approved: number; error?: string }> {
+  if (dupeIds.length === 0) return { approved: 0 }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { approved: 0, error: 'Unauthorized' }
+
+  const now = new Date().toISOString()
+
+  const { data: dupes, error: fetchError } = await supabase
+    .from('dupes')
+    .select('id, polish_a_id, polish_b_id')
+    .in('id', dupeIds)
+    .eq('status', 'pending')
+
+  if (fetchError) return { approved: 0, error: fetchError.message }
+
+  const { error: updateError } = await supabase
+    .from('dupes')
+    .update({ status: 'approved', reviewed_by: user.id, reviewed_at: now })
+    .in('id', dupeIds)
+
+  if (updateError) return { approved: 0, error: updateError.message }
+
+  // Increment dupe_count for all affected polishes
+  const polishIds = [...new Set(dupes?.flatMap(d => [d.polish_a_id, d.polish_b_id]) ?? [])]
+  await Promise.all(polishIds.map(id => supabase.rpc('increment_dupe_count', { polish_id: id })))
+
+  revalidatePath('/admin/dupes')
+  revalidatePath('/dupes')
+
+  return { approved: dupes?.length ?? 0 }
+}
+
+export async function createApprovedDupe(formData: {
+  polishAId: string
+  polishBId: string
+  notes?: string
+}): Promise<{ dupeId: string } | { error: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['admin', 'moderator'].includes(profile.role)) {
+    return { error: 'Unauthorized' }
+  }
+
+  const { data, error } = await supabase
+    .from('dupes')
+    .insert({
+      polish_a_id: formData.polishAId,
+      polish_b_id: formData.polishBId,
+      notes: formData.notes ?? null,
+      submitted_by: user.id,
+      status: 'approved',
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    if (error.code === '23505') return { error: 'This dupe pair already exists.' }
+    return { error: error.message }
+  }
+
+  await Promise.all([
+    supabase.rpc('increment_dupe_count', { polish_id: formData.polishAId }),
+    supabase.rpc('increment_dupe_count', { polish_id: formData.polishBId }),
+  ])
+
+  revalidatePath('/dupes')
+  revalidatePath('/admin/dupes')
+  return { dupeId: data.id }
+}
+
 export async function rejectDupe(
   dupeId: string,
   reason: string

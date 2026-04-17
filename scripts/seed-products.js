@@ -263,7 +263,7 @@ async function fetchGlistenAndGlow(brandId) {
         hex_color:       '#888888',
         finish_category: 'other',
         color_family:    'neutral',
-        msrp_usd:        p.price ? Number(p.price) / 100 : 11,
+        msrp_usd:        p.price ? parseFloat(p.price) : 11,
         is_verified:     true,
         is_limited:      false,
       }
@@ -347,6 +347,170 @@ async function fetchKBShimmerCatalog(brandId) {
   }
 
   return results
+}
+
+// ─── Essie — Sitecore CMS, sitemap + Playwright category crawl + JSON-LD ──────
+//
+// Essie's product pages expose full JSON-LD in raw HTML (no browser needed).
+// But URL discovery requires Playwright — category browse pages are JS-rendered.
+//
+// Strategy:
+//   1. Collect known individual polish URLs from sitemap
+//   2. Playwright-render each color-family category page to discover more product links
+//   3. Plain-fetch each product URL for JSON-LD → name, image, color, price, SKU
+//
+
+const ESSIE_CATEGORY_PAGES = [
+  // Enamel
+  '/nail-polish/enamel/blues', '/nail-polish/enamel/browns', '/nail-polish/enamel/corals',
+  '/nail-polish/enamel/grays', '/nail-polish/enamel/greens', '/nail-polish/enamel/nudes',
+  '/nail-polish/enamel/pinks', '/nail-polish/enamel/purples', '/nail-polish/enamel/reds',
+  '/nail-polish/enamel/sheers', '/nail-polish/enamel/whites', '/nail-polish/enamel/yellows',
+  // Longwear
+  '/nail-polish/longwear/blues', '/nail-polish/longwear/browns', '/nail-polish/longwear/grays',
+  '/nail-polish/longwear/greens', '/nail-polish/longwear/metallics-and-glitters',
+  '/nail-polish/longwear/nudes', '/nail-polish/longwear/oranges', '/nail-polish/longwear/pinks',
+  '/nail-polish/longwear/purples', '/nail-polish/longwear/reds', '/nail-polish/longwear/sheers',
+  '/nail-polish/longwear/whites', '/nail-polish/longwear/yellows',
+  // Quick-dry
+  '/nail-polish/quick-dry/blues', '/nail-polish/quick-dry/browns', '/nail-polish/quick-dry/corals',
+  '/nail-polish/quick-dry/grays', '/nail-polish/quick-dry/greens', '/nail-polish/quick-dry/nudes',
+  '/nail-polish/quick-dry/oranges', '/nail-polish/quick-dry/pinks', '/nail-polish/quick-dry/purples',
+  '/nail-polish/quick-dry/reds', '/nail-polish/quick-dry/whites', '/nail-polish/quick-dry/yellows',
+]
+
+// URL color-family segment → our color_family enum
+const ESSIE_COLOR_MAP = {
+  pinks: 'pink', reds: 'red', blues: 'blue', purples: 'purple',
+  greens: 'green', yellows: 'yellow', oranges: 'orange', corals: 'pink',
+  browns: 'neutral', nudes: 'neutral', grays: 'neutral', whites: 'neutral',
+  sheers: 'neutral', 'metallics-and-glitters': 'neutral', blacks: 'black',
+}
+
+// URL sub-type → finish_category hint
+const ESSIE_FINISH_FROM_PATH = {
+  'metallics-and-glitters': 'shimmer',
+  sheers: 'jelly',
+}
+
+function essieJsonLdToPolish(brandId, jsonld, productUrl) {
+  const name = jsonld.name
+  if (!name) return null
+
+  const slug = productUrl.split('/').filter(Boolean).pop()
+  const urlParts = productUrl.replace('https://www.essie.com/', '').split('/').filter(Boolean)
+  // URL structure: nail-polish / {sub-type} / {color-segment} / {slug}
+  //             or nail-polish / {color-segment} / {slug}
+  const colorSegment = urlParts.length === 4 ? urlParts[2] : urlParts[1]
+  const subType = urlParts.length === 4 ? urlParts[1] : null
+
+  const colorFamily = ESSIE_COLOR_MAP[colorSegment] ?? 'neutral'
+  const finishCategory = ESSIE_FINISH_FROM_PATH[colorSegment]
+    ?? (subType ? null : null)
+    ?? finishFromName(name)
+    ?? 'cream'
+
+  const hexForFamily = COLOR_HEX_MAP[colorFamily] ?? '#888888'
+
+  // JSON-LD images may contain HTML entities — decode &amp;
+  const rawImage = Array.isArray(jsonld.image) ? jsonld.image[0] : jsonld.image
+  const image = rawImage?.replace(/&amp;/g, '&') ?? null
+
+  const price = parseFloat(jsonld.offers?.price) || 10
+  const productUrl_ = jsonld['@id'] ?? productUrl
+
+  const record = {
+    brand_id:        brandId,
+    name,
+    slug,
+    hex_color:       hexForFamily,
+    finish_category: finishCategory,
+    color_family:    colorFamily,
+    msrp_usd:        price,
+    product_url:     productUrl_,
+    is_verified:     true,
+    is_limited:      false,
+  }
+  if (image) record.images = [image]
+  return record
+}
+
+async function fetchEssieProducts(brandId) {
+  const browser = await chromium.launch({ headless: true })
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    locale: 'en-US',
+  })
+  const page = await context.newPage()
+
+  const productUrls = new Set()
+
+  // Step 1: crawl each category page with Playwright to find product links
+  console.log(`  Crawling ${ESSIE_CATEGORY_PAGES.length} Essie category pages...`)
+  const PRODUCT_LINK_RE = /\/nail-polish\/[^/]+\/[^/]+\/[^/]+/
+  for (const path of ESSIE_CATEGORY_PAGES) {
+    const url = `https://www.essie.com${path}`
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+      // Wait for product cards to render — Essie uses anchor tags with data-product or class containing 'product'
+      await page.waitForSelector('a[href*="/nail-polish/"]', { timeout: 8000 }).catch(() => {})
+      const links = await page.$$eval('a[href]', (els, re) =>
+        els.map(a => a.getAttribute('href')).filter(h => h && new RegExp(re).test(h)),
+        PRODUCT_LINK_RE.source
+      )
+      for (const href of links) {
+        const full = href.startsWith('http') ? href : `https://www.essie.com${href}`
+        productUrls.add(full)
+      }
+      process.stdout.write(links.length > 0 ? '.' : 'o')
+    } catch {
+      process.stdout.write('x')
+    }
+    await sleep(600)
+  }
+  process.stdout.write('\n')
+
+  await browser.close()
+  console.log(`  Discovered ${productUrls.size} unique product URLs`)
+  // Filter out category/collection pages that slipped through (no individual product slug)
+  const filtered = [...productUrls].filter(u => {
+    const parts = u.replace('https://www.essie.com/', '').split('/').filter(Boolean)
+    // Individual polish: nail-polish / {sub-type} / {color} / {slug}  (4 parts)
+    // or legacy:         nail-polish / {color} / {slug}               (3 parts)
+    return parts.length >= 3
+  })
+
+  // Step 2: plain-fetch JSON-LD from each product page (no browser needed)
+  // Deduplicate by slug — same polish can appear in multiple category pages
+  const seenSlugs = new Set()
+  const polishes = []
+  let idx = 0
+  for (const productUrl of filtered) {
+    idx++
+    try {
+      const res = await fetch(productUrl, { headers: HEADERS })
+      if (!res.ok) { process.stdout.write('x'); continue }
+      const html = await res.text()
+      const jsonldBlocks = [...html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)]
+      const productBlock = jsonldBlocks
+        .map(m => { try { return JSON.parse(m[1]) } catch { return null } })
+        .find(d => d?.['@type'] === 'Product')
+      if (!productBlock) { process.stdout.write('-'); continue }
+      const polish = essieJsonLdToPolish(brandId, productBlock, productUrl)
+      if (polish) {
+        if (seenSlugs.has(polish.slug)) { process.stdout.write('d'); continue }
+        seenSlugs.add(polish.slug)
+        polishes.push(polish)
+        process.stdout.write('.')
+      } else process.stdout.write('-')
+    } catch {
+      process.stdout.write('x')
+    }
+    if (idx % 10 === 0) await sleep(400)
+  }
+  process.stdout.write('\n')
+
+  return polishes
 }
 
 // ─── Manually curated ─────────────────────────────────────────────────────────
@@ -552,18 +716,11 @@ async function run() {
     if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
   }
 
-  // ── Essie (manual — Sitecore CMS, JS-rendered, Playwright + sitemap worked for 7/8) ──
+  // ── Essie — Playwright category crawl + JSON-LD ───────────────────────────────
   if (should('essie')) {
-    console.log('Adding Essie (manual)...')
-    const polishes = manual(brandId['essie'], [
-      { name: 'Bordeaux',       slug: 'bordeaux',       hex_color: '#5A1528', finish_category: 'cream',   color_family: 'red',     msrp_usd: 10 },
-      { name: 'Ballet Slippers',slug: 'ballet-slippers',hex_color: '#F2E0E4', finish_category: 'cream',   color_family: 'pink',    msrp_usd: 10 },
-      { name: 'Wicked',         slug: 'wicked',         hex_color: '#3D1040', finish_category: 'cream',   color_family: 'purple',  msrp_usd: 10 },
-      { name: 'Marshmallow',    slug: 'marshmallow',    hex_color: '#F5F2EE', finish_category: 'cream',   color_family: 'neutral', msrp_usd: 10 },
-      { name: 'Fiji',           slug: 'fiji',           hex_color: '#E87060', finish_category: 'cream',   color_family: 'pink',    msrp_usd: 10 },
-      { name: 'Geranium',       slug: 'geranium',       hex_color: '#E85040', finish_category: 'cream',   color_family: 'red',     msrp_usd: 10 },
-      { name: 'Midnight Cami',  slug: 'midnight-cami',  hex_color: '#1A1830', finish_category: 'shimmer', color_family: 'blue',    msrp_usd: 10 },
-    ])
+    console.log('Adding Essie (sitemap + category crawl)...')
+    const polishes = await fetchEssieProducts(brandId['essie'])
+    console.log(`  ${polishes.length} Essie polishes scraped`)
     if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
   }
 

@@ -875,6 +875,65 @@ Added `opengraph-image.tsx` files for the two highest-value pages. Both use `nex
 
 ---
 
+## Session 15 — April 16, 2026
+
+### What was completed
+
+#### Admin dupe queue cleanup
+
+The `suggest-dupes.js` script had been run with `--insert` previously, flooding the admin review queue at `/admin/dupes` with 60 algorithmically-generated pending dupes. All 60 were auto-suggested by the profile-mode matcher (finish category + color family grouping) and were low quality — most were broad cross-brand pairings with no real community signal.
+
+**What was deleted:** All 60 pending dupes with `notes ILIKE '%Auto-suggested%'` were removed from the database. This included 10 pairings between Essie Midnight Cami and various Mooncat polishes (shimmer + blue grouping) which were particularly noisy.
+
+**Root cause fix — `suggest-dupes.js`:** Added `.eq('is_discontinued', false)` to `fetchAllPolishes()` so discontinued polishes (like Midnight Cami) are excluded from future algorithmic suggestions.
+
+**Midnight Cami marked discontinued:** Essie Midnight Cami (`slug: midnight-cami`) was also marked `is_discontinued: true` in the database. It's been off the market for years and has no product page — it shouldn't participate in dupe suggestions going forward. The one approved dupe pairing (Lincoln Park After Dark ↔ Midnight Cami) remains intact; only pending suggestions were removed.
+
+#### AI-powered dupe suggester — `scripts/suggest-dupes-ai.js`
+
+Built a new script that replaces algorithmic guessing with real community knowledge. Instead of grouping by finish/color profile, it uses Claude + web search to find what people are actually saying about a polish on Reddit (r/lacqueristas, r/nail_art), Temptalia, MakeupAlley, and nail polish blogs.
+
+**How it works:**
+1. Takes a polish by name (`--polish="Bloodbender"`) or sweeps a brand (`--brand=mooncat --top=10`)
+2. Calls Claude Opus 4.6 with the `web_search_20260209` tool — Claude searches the web and synthesizes community discussions into structured dupe suggestions
+3. Each suggestion comes back with brand, polish name, reason, and confidence level
+4. Suggestions are fuzzy-matched against the DupeTroop catalog (exact → brand+name contains → name-only fallback)
+5. Already-existing pairs, discontinued polishes, and unmatched suggestions are filtered out
+6. Results are displayed in the terminal with match confidence and the community rationale
+7. `--insert` prompts for confirmation then adds matches as pending dupes at `/admin/dupes`
+
+**Quality difference vs algorithmic:** The algorithmic suggester pairs everything within a finish+color bucket — it can pair 50 shimmer-blue polishes with each other regardless of whether anyone has ever called them dupes. The AI suggester only surfaces pairs that the community has actually discussed, with a stated reason.
+
+**Cost:** ~$0.01–0.05 per polish searched (Claude API usage). Run locally on demand — no automated trigger.
+
+**Usage:**
+```bash
+# Search for one polish
+node --env-file=.env.local scripts/suggest-dupes-ai.js --polish="Bloodbender"
+
+# Preview without inserting
+node --env-file=.env.local scripts/suggest-dupes-ai.js --polish="House of Hades" --dry-run --insert
+
+# Insert for admin review
+node --env-file=.env.local scripts/suggest-dupes-ai.js --polish="Ballet Slippers" --insert
+
+# Sweep a brand (top 5 polishes)
+node --env-file=.env.local scripts/suggest-dupes-ai.js --brand=mooncat --top=5 --insert
+```
+
+**Requires:** `ANTHROPIC_API_KEY` in `.env.local`. Install once with `npm install` (adds `@anthropic-ai/sdk` as a dev dependency).
+
+**What was ruled out:** Adding this as a button in the admin UI (e.g. "Suggest dupes" on the polish detail page). Technically straightforward — would be a server action calling the Claude API — but deferred since the terminal script is sufficient for now and keeps the API key out of the server action path.
+
+### Still to do (nice-to-haves)
+
+- [ ] Email notifications when a submitted dupe/polish is approved or rejected
+- [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
+- [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
+- [ ] Admin dupe creation flow (currently must use `/dupes/submit` + approve; a direct admin create would skip the queue)
+
+---
+
 ## How to Run Locally
 
 ```bash

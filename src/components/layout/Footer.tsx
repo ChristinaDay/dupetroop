@@ -13,7 +13,6 @@ export function Footer() {
             <Link href="/dupes" className="hover:text-foreground transition-colors">Dupes</Link>
             <Link href="/brands" className="hover:text-foreground transition-colors">Brands</Link>
             <Link href="/stash" className="hover:text-foreground transition-colors">My Stash</Link>
-            <Link href="/polishes/submit" className="hover:text-foreground transition-colors">Submit a Polish</Link>
           </nav>
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} DoopTroop. Community-powered.
