@@ -63,24 +63,20 @@ export function DupeCard({ dupe }: { dupe: DupeWithPolishes }) {
         </div>
       </div>
 
-      {/* Score + opinion count */}
-      <div className="px-3 pb-3 -mt-1 flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground">
-          {dupe.avg_overall !== null ? (
-            <>
-              <span className={cn('font-black', dupe.avg_overall >= 4 ? 'text-emerald-600 dark:text-emerald-400' : dupe.avg_overall >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')}>
-                {formatScore(dupe.avg_overall)}/5
-              </span>
-              {' '}Dupe Rating
-            </>
-          ) : (
-            'No ratings yet'
-          )}
-        </span>
-        <span className="text-[10px] text-muted-foreground">
-          {dupe.opinion_count} {dupe.opinion_count === 1 ? 'opinion' : 'opinions'}
-        </span>
-      </div>
+      {/* Score + opinion count — only shown when ratings exist */}
+      {dupe.avg_overall !== null && (
+        <div className="px-3 pb-3 -mt-1 flex items-center justify-between">
+          <span className="text-[10px] text-muted-foreground">
+            <span className={cn('font-black', dupe.avg_overall >= 4 ? 'text-emerald-600 dark:text-emerald-400' : dupe.avg_overall >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')}>
+              {formatScore(dupe.avg_overall)}/5
+            </span>
+            {' '}Dupe Rating
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            {dupe.opinion_count} {dupe.opinion_count === 1 ? 'opinion' : 'opinions'}
+          </span>
+        </div>
+      )}
     </Link>
   )
 }
