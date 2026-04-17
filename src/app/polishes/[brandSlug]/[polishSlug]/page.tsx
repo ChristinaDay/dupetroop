@@ -14,7 +14,7 @@ import { AddToStashButton } from '@/components/stash/AddToStashButton'
 import { InlinePolishRating } from '@/components/stash/InlinePolishRating'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { formatPrice } from '@/lib/utils/format'
+import { PolishPrice } from '@/components/polish/PolishPrice'
 
 interface PageProps {
   params: Promise<{ brandSlug: string; polishSlug: string }>
@@ -106,9 +106,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
             {polish.is_topper && <Badge variant="outline">Topper</Badge>}
           </div>
           <div className="flex items-center gap-4 mt-4 flex-wrap">
-            {polish.msrp_usd && (
-              <span className="text-lg font-bold">{formatPrice(polish.msrp_usd)}</span>
-            )}
+            <PolishPrice price={polish.msrp_usd} className="text-lg font-bold" />
             {polish.product_url && (
               <Button asChild variant="outline" size="sm">
                 <a href={polish.product_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">

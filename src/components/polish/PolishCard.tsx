@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { PolishBadge } from './PolishBadge'
-import { formatPrice } from '@/lib/utils/format'
+import { PolishPrice } from './PolishPrice'
 import { swatchStyle } from '@/lib/utils/color'
 import type { PolishWithBrand } from '@/lib/types/app.types'
 
@@ -70,11 +70,7 @@ export function PolishCard({ polish, showDupeCount = false }: PolishCardProps) {
         </h3>
         <div className="flex items-center justify-between mt-2">
           <PolishBadge finish={polish.finish_category} />
-          {polish.msrp_usd && (
-            <span className="text-xs text-muted-foreground">
-              {formatPrice(polish.msrp_usd)}
-            </span>
-          )}
+          <PolishPrice price={polish.msrp_usd} className="text-xs text-muted-foreground ml-auto" />
         </div>
       </div>
     </Link>

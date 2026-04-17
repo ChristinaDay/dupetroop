@@ -10,6 +10,8 @@ interface PolishBadgeProps {
 const ELECTRIC_FINISHES = ['holo', 'multichrome', 'duochrome', 'glitter', 'flakies']
 
 export function PolishBadge({ finish, className }: PolishBadgeProps) {
+  if (finish === 'other') return null
+
   if (ELECTRIC_FINISHES.includes(finish)) {
     return (
       <Badge

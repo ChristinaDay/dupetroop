@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { swatchStyle } from '@/lib/utils/color'
 import { PolishBadge } from '@/components/polish/PolishBadge'
-import { formatPrice } from '@/lib/utils/format'
+import { PolishPrice } from '@/components/polish/PolishPrice'
 import type { PolishWithBrand } from '@/lib/types/app.types'
 
 interface DupePolishColumnProps {
@@ -67,9 +67,7 @@ export function DupePolishColumn({ polish, role, communityImages = [] }: DupePol
         </Link>
         <div className="flex items-center gap-2 pt-0.5">
           <PolishBadge finish={polish.finish_category} />
-          {polish.msrp_usd && (
-            <span className="text-xs text-muted-foreground">{formatPrice(polish.msrp_usd)}</span>
-          )}
+          <PolishPrice price={polish.msrp_usd} className="text-xs text-muted-foreground" />
         </div>
       </div>
     </div>

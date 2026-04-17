@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { PolishSwatch } from './PolishSwatch'
 import { PolishBadge } from './PolishBadge'
-import { formatPrice } from '@/lib/utils/format'
+import { PolishPrice } from './PolishPrice'
 import type { FeaturedPolish, FeaturedSourceType } from '@/lib/types/app.types'
 
 const SOURCE_CONFIG: Partial<Record<FeaturedSourceType, { label: string; className: string; dot: string }>> = {
@@ -78,11 +78,7 @@ export function TrendingPolishCard({ polish }: TrendingPolishCardProps) {
             )}
           </div>
           <div className="flex items-center gap-3 mt-2">
-            {polish.msrp_usd && (
-              <span className="text-sm font-semibold text-muted-foreground">
-                {formatPrice(polish.msrp_usd)}
-              </span>
-            )}
+            <PolishPrice price={polish.msrp_usd} className="text-sm font-semibold text-muted-foreground" />
             {polish.dupe_count > 0 && (
               <span className="text-sm font-bold text-primary">
                 {polish.dupe_count} dupe{polish.dupe_count !== 1 ? 's' : ''}
