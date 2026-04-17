@@ -49,7 +49,7 @@ const NON_POLISH_KEYWORDS = [
   'sticker', 'nail art', 'replacement', 'brush', 'spatula', 'duo', 'trio',
   'quad', 'thinner', 'dropper', 'refill', 'prep pad', 'nail glue',
   'acetone', 'cleanser', 'dehydrator', 'nail polish remover', 'cuticle oil',
-  'stanley', 'tumbler', 'mug',
+  'stanley', 'tumbler', 'mug', 'wand',
 ]
 
 const NON_POLISH_PRODUCT_TYPES = [
@@ -1033,6 +1033,136 @@ async function run() {
           msrp_usd:        price,
           is_verified:     true,
           is_limited:      true, // BKL releases are all limited edition
+        }
+        if (image) record.images = [image]
+        return record
+      })
+
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} $${p.msrp_usd}  ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
+  // ── Death Valley Nails (Shopify — finish from dedicated collections + title) ──
+  // DVN encodes finish in title parentheticals e.g. "(magnetic)", "(thermal)".
+  // They also have dedicated finish collections for reliable bulk mapping.
+  if (should('death-valley-nails')) {
+    process.stdout.write('Fetching Death Valley Nails finish map... ')
+    const DVN_FINISH_COLLECTIONS = [
+      // Most specific first — first match wins
+      ['magnetic',             'magnetic'],
+      ['duochrome-multichrome','multichrome'],
+      ['holographic',          'holo'],
+      ['glitter-flakies',      'glitter'],
+      ['iridescent-shimmer',   'shimmer'],
+      ['crelly-jelly',         'jelly'],
+      ['creme',                'cream'],
+      ['matte',                'matte'],
+      ['thermal',              'other'],
+      ['photo-thermal',        'other'],
+      ['photochromatic',       'other'],
+      ['glow',                 'other'],
+      ['neon',                 'cream'],
+    ]
+    const dvnFinishMap = {}
+    try {
+      for (const [collection, finish] of DVN_FINISH_COLLECTIONS) {
+        let page = 1
+        while (true) {
+          const url = `https://deathvalleynails.com/collections/${collection}/products.json?limit=250&page=${page}`
+          const res = await fetch(url, { headers: HEADERS })
+          if (!res.ok) break
+          const { products } = await res.json()
+          if (!products?.length) break
+          for (const p of products) {
+            if (!dvnFinishMap[p.handle]) dvnFinishMap[p.handle] = finish
+          }
+          if (products.length < 250) break
+          page++
+          await sleep(200)
+        }
+      }
+      console.log(`${Object.keys(dvnFinishMap).length} handles mapped`)
+    } catch (e) { console.error('\n  Error building finish map:', e.message) }
+
+    process.stdout.write('Fetching Death Valley Nails (full catalog)... ')
+    try {
+      // Use the nail-polish collection — already excludes candles, body, apparel, etc.
+      const allProducts = await fetchShopifyAllProducts('deathvalleynails.com', 'nail-polish')
+      const products = allProducts.filter(p => {
+        // Exclude wholesale variants
+        if (p.title.toLowerCase().includes('(wholesale)')) return false
+        if ((p.tags ?? []).some(t => t.toLowerCase() === 'wholesale')) return false
+        // Exclude $0 customization listings and obvious non-polish items
+        const price = parseFloat(p.variants?.[0]?.price ?? '0')
+        if (price === 0) return false
+        if (!isActualPolish(p.title, p.product_type ?? '')) return false
+        return true
+      })
+
+      const polishes = products.map(p => {
+        const desc = p.body_html?.toLowerCase().replace(/<[^>]+>/g, ' ') ?? ''
+        const price = parseFloat(p.variants?.[0]?.price ?? '14')
+        const image = p.images?.[0]?.src ?? null
+
+        // Finish: collection map first, then refine via description, then title parenthetical
+        let finish = dvnFinishMap[p.handle] ?? 'other'
+
+        // Refine glitter → flakies if description says so
+        if (finish === 'glitter' && (desc.includes('flakie') || desc.includes('flake'))) finish = 'flakies'
+        // Refine multichrome from description
+        if (finish === 'other' || finish === 'shimmer') {
+          if (desc.includes('multichrome') || desc.includes('multi-chrome')) finish = 'multichrome'
+          else if (desc.includes('holographic') || desc.includes(' holo ')) finish = 'holo'
+          else if (desc.includes('flakie') || desc.includes('flake')) finish = 'flakies'
+          else if (desc.includes('glitter')) finish = 'glitter'
+          else if (desc.includes('shimmer') || desc.includes('duochrome') || desc.includes('iridescent')) finish = 'shimmer'
+          else if (desc.includes('jelly') || desc.includes('crelly')) finish = 'jelly'
+          else if (desc.includes('matte')) finish = 'matte'
+          else if (desc.includes('topper')) finish = 'topper'
+        }
+        // Final fallback: title parenthetical
+        if (finish === 'other') {
+          const titleLower = p.title.toLowerCase()
+          if (titleLower.includes('(magnetic)') || titleLower.includes('(magnetic-thermal)')) finish = 'magnetic'
+          else if (titleLower.includes('(matte)') || titleLower.includes('(matte thermal)') || titleLower.includes('(matte photochromatic)')) finish = 'matte'
+          else finish = finishFromName(p.title)
+        }
+
+        // Override finish for functional coats (collection map misclassifies these)
+        const titleLow = p.title.toLowerCase()
+        if (titleLow.includes('top coat') || titleLow.includes('quick dry')) finish = 'topper'
+        else if (titleLow.includes('base coat')) finish = 'other'
+
+        // Clean display name — strip finish/wholesale parentheticals from title
+        const cleanName = p.title
+          .replace(/\s*\((magnetic|thermal|matte|glow|photochromatic|photo-thermal|matte thermal|matte photochromatic|magnetic-thermal|graphite grit|dust to dust|specialty organic|wholesale)[^)]*\)/gi, '')
+          .trim()
+
+        // Color from description
+        const COLOR_WORDS = [
+          ['black', 'black'], ['white', 'neutral'], ['gray', 'neutral'], ['grey', 'neutral'],
+          ['silver', 'neutral'], ['gold', 'yellow'], ['yellow', 'yellow'], ['orange', 'orange'],
+          ['red', 'red'], ['pink', 'pink'], ['magenta', 'pink'], ['purple', 'purple'],
+          ['violet', 'purple'], ['blue', 'blue'], ['teal', 'green'], ['green', 'green'],
+          ['olive', 'green'], ['brown', 'neutral'], ['nude', 'neutral'], ['coral', 'pink'],
+        ]
+        let colorFamily = 'neutral'
+        for (const [word, family] of COLOR_WORDS) {
+          if (desc.includes(word)) { colorFamily = family; break }
+        }
+
+        const record = {
+          brand_id:        brandId['death-valley-nails'],
+          name:            cleanName,
+          slug:            p.handle,
+          hex_color:       COLOR_HEX_MAP[colorFamily] ?? '#888888',
+          finish_category: finish,
+          color_family:    colorFamily,
+          msrp_usd:        price,
+          is_verified:     true,
+          is_limited:      false,
         }
         if (image) record.images = [image]
         return record
