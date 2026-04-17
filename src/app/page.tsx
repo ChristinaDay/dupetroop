@@ -84,11 +84,16 @@ export default async function HomePage() {
                 <TrendingUp className="h-5 w-5 text-primary shrink-0" />
                 <h2 className="font-display font-black uppercase tracking-tight text-4xl leading-none">Top-rated dupes</h2>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/dupes?sort=top_rated" className="flex items-center gap-1">
-                  See all <ArrowRight className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-4">
+                <Link href="/dupes/submit" className="text-xs font-semibold text-muted-foreground hover:text-primary transition-colors">
+                  Know a dupe? Submit one →
                 </Link>
-              </Button>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/dupes?sort=top_rated" className="flex items-center gap-1">
+                    See all <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {featuredDupes.map(dupe => (
@@ -165,7 +170,7 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
-              <Button asChild size="lg" className="font-bold uppercase tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button asChild size="lg" variant="electric" className="font-bold uppercase tracking-wide">
                 <Link href="/signup">Create a free account</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="font-bold uppercase tracking-wide border-background/30 text-background hover:bg-background/10">

@@ -239,6 +239,14 @@ export function Header({ user, username, isAdmin = false }: HeaderProps) {
                           >
                             Recently Added
                           </Link>
+                          <div className="my-1 border-t border-border" />
+                          <Link
+                            href="/dupes/submit"
+                            onClick={() => setActiveDropdown(null)}
+                            className="flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-accent transition-colors"
+                          >
+                            Submit a swap →
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -409,6 +417,7 @@ export function Header({ user, username, isAdmin = false }: HeaderProps) {
                 <Link href="/dupes" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Browse All</Link>
                 <Link href="/dupes?sort=top_rated" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Top Rated</Link>
                 <Link href="/dupes?sort=newest" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Recently Added</Link>
+                <Link href="/dupes/submit" className="block rounded-lg px-2 py-2 text-sm font-semibold text-primary hover:bg-accent transition-colors">Submit a swap →</Link>
               </div>
 
               {/* Auth + utils */}
