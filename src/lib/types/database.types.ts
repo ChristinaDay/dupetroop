@@ -365,6 +365,10 @@ export type Database = {
         Args: { polish_id: string }
         Returns: undefined
       }
+      decrement_dupe_count: {
+        Args: { polish_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       finish_category:
