@@ -100,7 +100,7 @@ function PolishSearchCombobox({
             <a href="/polishes/submit" className="text-primary font-semibold hover:underline">
               Submit the polish first
             </a>
-            , then come back to submit the swap.
+            , then come back to submit the dupe.
           </p>
         </div>
       )}

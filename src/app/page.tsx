@@ -40,7 +40,7 @@ export default async function HomePage() {
               dupe.
             </h1>
             <p className="text-base text-muted-foreground max-w-md leading-relaxed">
-              Navigate the full matrix — single-bottle swaps, layering recipes,
+              Navigate the full matrix — single-bottle dupes, multi-polish swaps,
               and what you can make with what you already own.
             </p>
             <div className="max-w-md">

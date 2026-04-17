@@ -15,7 +15,7 @@ export function PolishBadge({ finish, className }: PolishBadgeProps) {
   if (ELECTRIC_FINISHES.includes(finish)) {
     return (
       <Badge
-        className={`bg-electric/15 text-electric-foreground border-electric/30 hover:bg-electric/20 ${className ?? ''}`}
+        className={`bg-electric/15 text-electric-foreground dark:text-white border-electric/30 hover:bg-electric/20 ${className ?? ''}`}
       >
         {finishLabel(finish)}
       </Badge>

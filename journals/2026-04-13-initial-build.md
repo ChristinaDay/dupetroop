@@ -1016,6 +1016,51 @@ Added "Submit a swap →" in two new places:
 
 ---
 
+## Session 17 — April 17, 2026
+
+### What was completed
+
+#### Terminology clarification: dupe vs. swap
+
+Resolved a naming ambiguity that had accumulated over previous sessions. The word "swap" had been used as a softer synonym for "dupe" (e.g. "Submit a swap") while the multi-polish combination concept was called "look", "recipe", or "combination recipe" inconsistently. This created confusion because the two concepts are genuinely distinct and deserve distinct names.
+
+**The two concepts, now clearly named:**
+
+| Term | Meaning | Example |
+|---|---|---|
+| **Dupe** | A single polish that closely resembles another — a one-for-one substitution, rated by the community on color, finish, and formula accuracy | Casa de Heaven ≈ House of Hades |
+| **Swap** | A multi-polish combination that recreates a target look — two or more polishes layered together | House of Hades + Scorchy = Bloodbender |
+
+**Why "dupe" for the single-polish case:** The word "dupe" is established vocabulary in the nail polish community (r/lacqueristas, Temptalia, etc.) — it always means a single-bottle alternative. Fighting that would confuse new users arriving from search.
+
+**Why "swap" for the multi-polish case:** "Swap" implies substitution — you're swapping out the original look for a combination you can build yourself. It also avoids the confusion that "swap" previously caused in the nav ("Submit a swap" meant submitting a single-polish pair, which contradicted its new definition). Now "swap" has a clear, distinct meaning.
+
+**What was ruled out:** Calling multi-polish combinations "looks" or "recipes". "Looks" was removed as a standalone browse surface in Session 8 and doesn't carry its weight as a noun. "Recipe" is accurate but clinical — "swap" is more aligned with how the community talks.
+
+**Note on "swap" in nail polish communities:** In some communities "swap" refers to physically trading polishes with other people (destash swaps). This is a known tension but considered acceptable — DupeTroop's context makes the meaning clear, and it's less confusing than the previous inconsistency.
+
+**Files updated (UI labels only — database tables and URL routes unchanged):**
+
+- `src/app/page.tsx` — hero copy: "single-bottle swaps, layering recipes" → "single-bottle dupes, multi-polish swaps"
+- `src/app/polishes/[brandSlug]/[polishSlug]/page.tsx` — "Polish swaps" section → "Dupes"; "Combination recipes" section → "Swaps"; all CTAs updated
+- `src/app/dupes/submit/page.tsx` — helper text: "submit the swap" → "submit the dupe"
+- `src/app/profile/[username]/page.tsx` — "Swaps submitted" stat + section → "Dupes submitted"
+- `src/components/layout/Header.tsx` — nav CTA: "Submit a swap →" → "Submit a dupe →" (desktop + mobile)
+- `src/app/admin/page.tsx` — dashboard card: "Pending recipes" → "Pending swaps"
+- `src/app/admin/looks/page.tsx` — page header, button, empty state: "recipes" → "swaps"
+- `src/app/admin/looks/new/page.tsx` — form heading: "New Combination Recipe" → "New Swap"; field label: "Recipe name" → "Swap name"
+- `src/app/looks/[lookId]/page.tsx` — removed dead "Browse all recipes" → `/looks` button (the `/looks` index page was removed in Session 8 and was 404ing)
+
+**Not changed:** Database table names (`dupes`, `looks`), URL routes (`/dupes`, `/looks/[lookId]`), internal query/action function names. These can be addressed in a future cleanup if desired.
+
+### Still to do (nice-to-haves)
+
+- [ ] Email notifications when a submitted dupe/polish is approved or rejected
+- [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
+- [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
+
+---
+
 ## How to Run Locally
 
 ```bash

@@ -237,11 +237,11 @@ export default async function PolishDetailPage({ params }: PageProps) {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold">Polish swaps</h3>
+              <h3 className="text-base font-bold">Dupes</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Single-bottle alternatives rated by the community</p>
             </div>
             <Button asChild size="sm" variant="outline">
-              <Link href={`/dupes/submit?a=${polish.id}`}>+ Submit a swap</Link>
+              <Link href={`/dupes/submit?a=${polish.id}`}>+ Submit a dupe</Link>
             </Button>
           </div>
           {dupes.length > 0 ? (
@@ -252,10 +252,10 @@ export default async function PolishDetailPage({ params }: PageProps) {
             </div>
           ) : (
             <div className="border border-dashed border-border rounded-xl py-10 text-center">
-              <p className="text-muted-foreground font-medium">No swaps yet.</p>
+              <p className="text-muted-foreground font-medium">No dupes yet.</p>
               <p className="text-sm text-muted-foreground mt-1">Know a polish that looks just like this one?</p>
               <Button asChild className="mt-4" size="sm">
-                <Link href={`/dupes/submit?a=${polish.id}`}>Submit a swap</Link>
+                <Link href={`/dupes/submit?a=${polish.id}`}>Submit a dupe</Link>
               </Button>
             </div>
           )}
@@ -264,8 +264,8 @@ export default async function PolishDetailPage({ params }: PageProps) {
         {/* Combination recipes */}
         <div>
           <div className="mb-4">
-            <h3 className="text-base font-bold">Combination recipes</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Multi-polish layering techniques that recreate this look</p>
+            <h3 className="text-base font-bold">Swaps</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Multi-polish combinations that recreate this look</p>
           </div>
           {looks.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -275,7 +275,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
             </div>
           ) : (
             <div className="border border-dashed border-border rounded-xl py-10 text-center">
-              <p className="text-muted-foreground font-medium">No recipes yet.</p>
+              <p className="text-muted-foreground font-medium">No swaps yet.</p>
               <p className="text-sm text-muted-foreground mt-1">Know a combination that recreates this effect?</p>
             </div>
           )}

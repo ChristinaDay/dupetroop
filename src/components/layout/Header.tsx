@@ -245,7 +245,7 @@ export function Header({ user, username, isAdmin = false }: HeaderProps) {
                             onClick={() => setActiveDropdown(null)}
                             className="flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-accent transition-colors"
                           >
-                            Submit a swap →
+                            Submit a dupe →
                           </Link>
                         </div>
                       </div>
@@ -417,7 +417,7 @@ export function Header({ user, username, isAdmin = false }: HeaderProps) {
                 <Link href="/dupes" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Browse All</Link>
                 <Link href="/dupes?sort=top_rated" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Top Rated</Link>
                 <Link href="/dupes?sort=newest" className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent transition-colors">Recently Added</Link>
-                <Link href="/dupes/submit" className="block rounded-lg px-2 py-2 text-sm font-semibold text-primary hover:bg-accent transition-colors">Submit a swap →</Link>
+                <Link href="/dupes/submit" className="block rounded-lg px-2 py-2 text-sm font-semibold text-primary hover:bg-accent transition-colors">Submit a dupe →</Link>
               </div>
 
               {/* Auth + utils */}

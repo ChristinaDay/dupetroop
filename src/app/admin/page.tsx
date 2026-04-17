@@ -40,7 +40,7 @@ export default async function AdminDashboard() {
         <Card className="hover:border-primary transition-colors cursor-pointer">
           <CardContent className="p-6">
             <p className="text-4xl font-black text-primary">{pendingLooks.length}</p>
-            <p className="text-sm font-semibold mt-1">Pending recipes</p>
+            <p className="text-sm font-semibold mt-1">Pending swaps</p>
           </CardContent>
         </Card>
       </Link>

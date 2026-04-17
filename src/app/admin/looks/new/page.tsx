@@ -174,18 +174,18 @@ export default function NewLookPage() {
 
   return (
     <div className="max-w-2xl">
-      <h2 className="text-xl font-black mb-6">New Combination Recipe</h2>
+      <h2 className="text-xl font-black mb-6">New Swap</h2>
 
       <div className="space-y-6">
         {/* Name */}
         <div>
           <label className="text-sm font-semibold block mb-1">
-            Recipe name <span className="text-rose-500">*</span>
+            Swap name <span className="text-rose-500">*</span>
           </label>
           <Input
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="e.g. Bloodbender Dupe Recipe"
+            placeholder="e.g. Bloodbender Swap"
           />
         </div>
 

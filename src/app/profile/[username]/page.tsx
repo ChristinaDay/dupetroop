@@ -81,7 +81,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
         <div className="border border-border rounded-xl p-4 text-center">
           <p className="text-2xl font-black text-primary">{profile.dupe_count}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Swaps submitted</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Dupes submitted</p>
         </div>
         <div className="border border-border rounded-xl p-4 text-center">
           <p className="text-2xl font-black text-primary">{profile.polish_count}</p>
@@ -111,7 +111,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
       {/* Submitted swaps */}
       {submittedDupes && submittedDupes.length > 0 && (
         <div>
-          <h2 className="text-lg font-black tracking-tight mb-4">Swaps submitted</h2>
+          <h2 className="text-lg font-black tracking-tight mb-4">Dupes submitted</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {submittedDupes.map((dupe: any) => (
@@ -120,7 +120,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
           </div>
           {profile.dupe_count > 6 && (
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Showing 6 of {profile.dupe_count} swaps
+              Showing 6 of {profile.dupe_count} dupes
             </p>
           )}
         </div>
@@ -128,7 +128,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
       {submittedDupes?.length === 0 && profile.dupe_count === 0 && (
         <div className="border border-dashed border-border rounded-xl py-10 text-center">
-          <p className="text-muted-foreground font-medium">No swaps submitted yet.</p>
+          <p className="text-muted-foreground font-medium">No dupes submitted yet.</p>
           <p className="text-sm text-muted-foreground mt-1">
             <Link href="/dupes/submit" className="hover:text-primary transition-colors underline underline-offset-2">
               Know a good dupe?

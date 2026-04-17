@@ -11,14 +11,14 @@ export default async function AdminLooksPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-black">Pending recipes ({looks.length})</h2>
+        <h2 className="text-xl font-black">Pending swaps ({looks.length})</h2>
         <Button asChild size="sm">
-          <Link href="/admin/looks/new">+ New Recipe</Link>
+          <Link href="/admin/looks/new">+ New Swap</Link>
         </Button>
       </div>
 
       {looks.length === 0 ? (
-        <p className="text-muted-foreground">No pending recipes. 🎉</p>
+        <p className="text-muted-foreground">No pending swaps. 🎉</p>
       ) : (
         <div className="space-y-4">
           {looks.map(look => (

@@ -298,9 +298,6 @@ export default async function LookDetailPage({ params }: PageProps) {
             </Link>
           </Button>
         )}
-        <Button asChild variant="ghost">
-          <Link href="/looks">Browse all recipes</Link>
-        </Button>
       </div>
     </div>
   )
