@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X, Sparkles, Search, ChevronDown, User } from 'lucide-react'
+import { Menu, X, Search, ChevronDown, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SearchModal } from '@/components/search/SearchModal'
@@ -93,10 +93,9 @@ export function Header({ user, username, isAdmin = false }: HeaderProps) {
               {/* Logo */}
               <Link
                 href="/"
-                className="flex items-center gap-2 font-black text-xl tracking-tight shrink-0"
+                className="font-display font-black text-2xl tracking-tight shrink-0 leading-none uppercase"
               >
-                <Sparkles className="h-5 w-5 text-primary" />
-                <span>Dupe<span className="text-primary">Troop</span></span>
+                Doop<span className="text-primary">Troop</span>
               </Link>
 
               {/* Desktop nav */}

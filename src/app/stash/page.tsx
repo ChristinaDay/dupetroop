@@ -9,7 +9,7 @@ import { AddPolishModal } from '@/components/stash/AddPolishModal'
 import Link from 'next/link'
 import type { StashStatus, StashItemWithPolish } from '@/lib/types/app.types'
 
-export const metadata = { title: 'My Stash — DupeTroop' }
+export const metadata = { title: 'My Stash — DoopTroop' }
 
 const TABS: { value: StashStatus; label: string; emptyHeading: string; emptyBody: string }[] = [
   {

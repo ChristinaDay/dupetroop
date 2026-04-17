@@ -55,7 +55,7 @@ export function OpinionCard({ opinion, dupeId, currentUserId }: OpinionCardProps
         toast.error(result.error)
       } else {
         setReported(true)
-        toast.success('Opinion reported. Thanks for helping keep DupeTroop accurate.')
+        toast.success('Opinion reported. Thanks for helping keep DoopTroop accurate.')
       }
     })
   }

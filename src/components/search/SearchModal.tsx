@@ -85,7 +85,7 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
     <CommandDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Search DupeTroop"
+      title="Search DoopTroop"
       description="Search for nail polishes and brands"
     >
       <CommandInput

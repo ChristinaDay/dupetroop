@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 
 export const metadata: Metadata = {
   title: 'Indie Nail Polish Brands',
-  description: 'Browse all indie nail polish brands tracked on DupeTroop.',
+  description: 'Browse all indie nail polish brands tracked on DoopTroop.',
 }
 
 export default async function BrandsPage() {

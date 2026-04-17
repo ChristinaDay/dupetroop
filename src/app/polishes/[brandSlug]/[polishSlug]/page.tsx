@@ -155,7 +155,7 @@ export default async function PolishDetailPage({ params }: PageProps) {
                   ))}
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {ratings.ownerRating.count} DupeTroop {ratings.ownerRating.count === 1 ? 'owner' : 'owners'}
+                  {ratings.ownerRating.count} DoopTroop {ratings.ownerRating.count === 1 ? 'owner' : 'owners'}
                 </span>
               </div>
               {(ratings.ownerRating.avgColor != null || ratings.ownerRating.avgFinish != null || ratings.ownerRating.avgFormula != null) && (

@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import { getDupeById } from '@/lib/queries/dupes'
 
-export const alt = 'Dupe comparison on DupeTroop'
+export const alt = 'Dupe comparison on DoopTroop'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -201,7 +201,7 @@ export default async function OgImage({
           </div>
         </div>
 
-        {/* Top-right: DupeTroop brand */}
+        {/* Top-right: DoopTroop brand */}
         <div
           style={{
             position: 'absolute',

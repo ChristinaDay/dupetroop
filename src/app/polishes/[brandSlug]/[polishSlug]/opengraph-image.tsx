@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 import { getPolishBySlug } from '@/lib/queries/polishes'
 import { finishLabel } from '@/lib/utils/format'
 
-export const alt = 'Polish on DupeTroop'
+export const alt = 'Polish on DoopTroop'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -135,7 +135,7 @@ export default async function OgImage({
             </p>
           )}
 
-          {/* Bottom: DupeTroop branding */}
+          {/* Bottom: DoopTroop branding */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{

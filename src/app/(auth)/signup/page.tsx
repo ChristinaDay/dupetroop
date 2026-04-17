@@ -49,7 +49,7 @@ export default function SignupPage() {
             <Sparkles className="h-5 w-5 text-primary" />
             Dupe<span className="text-primary">Troop</span>
           </Link>
-          <h1 className="text-2xl font-black">Join DupeTroop</h1>
+          <h1 className="text-2xl font-black">Join DoopTroop</h1>
           <p className="text-muted-foreground text-sm mt-1">Rate dupes, submit findings, help the community.</p>
         </div>
 

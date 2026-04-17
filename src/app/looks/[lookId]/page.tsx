@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!look) return {}
   return {
     title: look.name,
-    description: look.description ?? `A nail polish combination recipe on DupeTroop.`,
+    description: look.description ?? `A nail polish combination recipe on DoopTroop.`,
   }
 }
 

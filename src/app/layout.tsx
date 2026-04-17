@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Barlow_Condensed, Archivo, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
@@ -7,25 +7,34 @@ import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { createClient } from '@/lib/supabase/server'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+// Display / heading font — condensed, punchy, editorial
+const barlowCondensed = Barlow_Condensed({
+  variable: '--font-display',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+})
+
+// Body font — more character than Geist, still clean
+const archivo = Archivo({
+  variable: '--font-sans',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '900'],
 })
 
 const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+  variable: '--font-mono',
   subsets: ['latin'],
 })
 
 export const metadata: Metadata = {
   title: {
-    default: 'DupeTroop — Find Your Nail Polish Dupe',
-    template: '%s | DupeTroop',
+    default: 'DoopTroop — Find Your Nail Polish Dupe',
+    template: '%s | DoopTroop',
   },
   description:
     'Community-powered nail polish dupe tracker. Find exact matches for your favorite indie polishes and rate how accurate the dupes really are.',
   openGraph: {
-    title: 'DupeTroop',
+    title: 'DoopTroop',
     description: 'Community-powered nail polish dupe tracker.',
     type: 'website',
   },
@@ -54,7 +63,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${barlowCondensed.variable} ${archivo.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

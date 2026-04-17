@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Flame, Sparkles, TrendingUp, Users } from 'lucide-react'
+import { ArrowRight, Flame, TrendingUp, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DupeCard } from '@/components/dupe/DupeCard'
 import { PolishCard } from '@/components/polish/PolishCard'
@@ -53,31 +53,29 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="border-b border-border bg-gradient-to-br from-accent to-background">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span className="text-sm font-semibold text-primary uppercase tracking-widest">
-                Community-powered
-              </span>
-            </div>
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none mb-4">
-              Find your perfect{' '}
-              <span className="text-primary">nail polish dupe.</span>
-            </h1>
-            <p className="text-lg text-muted-foreground mb-6 max-w-lg">
-              Navigate the matrix of options around a look you want — single-bottle swaps,
-              layering recipes, and what you can make with what you already own.
+      <section className="border-b border-border bg-background overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+          <div className="flex flex-col gap-5">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
+              Community-powered dupe tracker
             </p>
-            <div className="mb-6">
+            <h1 className="font-display font-black uppercase leading-[0.88] tracking-tight text-[clamp(3.5rem,12vw,9rem)]">
+              Find your<br />
+              <span className="text-primary">perfect</span><br />
+              dupe.
+            </h1>
+            <p className="text-base text-muted-foreground max-w-md leading-relaxed">
+              Navigate the full matrix — single-bottle swaps, layering recipes,
+              and what you can make with what you already own.
+            </p>
+            <div className="max-w-md">
               <HeroSearch />
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" className="font-bold">
+              <Button asChild size="lg" className="font-bold uppercase tracking-wide">
                 <Link href="/dupes">Browse Dupes</Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" variant="outline" className="font-bold uppercase tracking-wide">
                 <Link href="/polishes">Browse Polishes</Link>
               </Button>
             </div>
@@ -89,9 +87,9 @@ export default async function HomePage() {
       {featuredPolishes.length > 0 && (
         <section className="border-b border-border">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-            <div className="flex items-center gap-2 mb-6">
-              <Flame className="h-5 w-5 text-primary" />
-              <h2 className="text-2xl font-black tracking-tight">Trending Now</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <Flame className="h-5 w-5 text-primary shrink-0" />
+              <h2 className="font-display font-black uppercase tracking-tight text-4xl leading-none">Trending Now</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {featuredPolishes.map(polish => (
@@ -164,9 +162,9 @@ export default async function HomePage() {
         <section className="border-b border-border">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-black tracking-tight">Top-rated dupes</h2>
+              <div className="flex items-center gap-3">
+                <TrendingUp className="h-5 w-5 text-primary shrink-0" />
+                <h2 className="font-display font-black uppercase tracking-tight text-4xl leading-none">Top-rated dupes</h2>
               </div>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/dupes?sort=top_rated" className="flex items-center gap-1">
@@ -188,7 +186,7 @@ export default async function HomePage() {
         <section className="border-b border-border">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-black tracking-tight">Recently added</h2>
+              <h2 className="font-display font-black uppercase tracking-tight text-4xl leading-none">Recently added</h2>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/dupes" className="flex items-center gap-1">
                   See all <ArrowRight className="h-3.5 w-3.5" />
@@ -209,7 +207,7 @@ export default async function HomePage() {
         <section className="border-b border-border">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-black tracking-tight">New polishes</h2>
+              <h2 className="font-display font-black uppercase tracking-tight text-4xl leading-none">New polishes</h2>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/polishes" className="flex items-center gap-1">
                   See all <ArrowRight className="h-3.5 w-3.5" />
@@ -236,20 +234,26 @@ export default async function HomePage() {
       )}
 
       {/* CTA */}
-      <section className="bg-primary text-primary-foreground">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 text-center">
-          <Users className="h-8 w-8 mx-auto mb-4 opacity-80" />
-          <h2 className="text-3xl font-black mb-3">Track what you own.</h2>
-          <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">
-            Add polishes to your stash and DupeTroop will tell you which looks you can make right now — and which ones are just one purchase away.
-          </p>
-          <div className="flex justify-center gap-3">
-            <Button asChild variant="secondary" size="lg" className="font-bold">
-              <Link href="/signup">Create a free account</Link>
-            </Button>
-            <Button asChild size="lg" className="bg-transparent border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10">
-              <Link href="/stash">View your stash</Link>
-            </Button>
+      <section className="bg-foreground text-background">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] opacity-50 mb-3">Your collection</p>
+              <h2 className="font-display font-black uppercase leading-[0.9] text-[clamp(2.5rem,7vw,5rem)] mb-4">
+                Know what<br />you can make<br /><span className="text-primary">right now.</span>
+              </h2>
+              <p className="opacity-70 max-w-sm leading-relaxed">
+                Add polishes to your stash and DoopTroop surfaces which looks you can recreate today — and which ones are just one purchase away.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
+              <Button asChild size="lg" className="font-bold uppercase tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
+                <Link href="/signup">Create a free account</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="font-bold uppercase tracking-wide border-background/30 text-background hover:bg-background/10">
+                <Link href="/stash">View your stash</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>

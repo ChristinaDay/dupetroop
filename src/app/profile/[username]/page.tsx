@@ -13,7 +13,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { username } = await params
   return {
-    title: `@${username} — DupeTroop`,
+    title: `@${username} — DoopTroop`,
   }
 }
 

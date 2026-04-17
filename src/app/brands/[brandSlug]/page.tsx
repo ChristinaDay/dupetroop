@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!brand) return {}
   return {
     title: brand.name,
-    description: `Browse all ${brand.name} nail polishes and find dupes on DupeTroop.`,
+    description: `Browse all ${brand.name} nail polishes and find dupes on DoopTroop.`,
   }
 }
 
