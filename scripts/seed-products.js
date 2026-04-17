@@ -880,19 +880,51 @@ async function run() {
     } catch (e) { console.error('\n  Error:', e.message) }
   }
 
-  // ── Cracked (Shopify — open API, finish inferred from name) ──────────────────
+  // ── Cracked (Shopify — open API, finish from finish-specific collections) ─────
+  // Cracked's tags are useless for finish (just 'Nail Polish'). Instead we fetch
+  // their dedicated finish collections to build a handle→finish map.
   if (should('cracked')) {
+    process.stdout.write('Fetching Cracked finish map... ')
+    const CRACKED_FINISH_COLLECTIONS = [
+      // Most specific first — first match wins
+      ['multichrome',     'multichrome'],
+      ['magnetic',        'magnetic'],
+      ['jelly',           'jelly'],
+      ['shimmer',         'shimmer'],
+      ['cream',           'cream'],
+      ['finishing-touches','topper'],
+    ]
+    const finishMap = {} // handle → finish
+    try {
+      for (const [collection, finish] of CRACKED_FINISH_COLLECTIONS) {
+        let page = 1
+        while (true) {
+          const url = `https://crackedpolish.com/collections/${collection}/products.json?limit=250&page=${page}`
+          const res = await fetch(url, { headers: HEADERS })
+          if (!res.ok) break
+          const { products } = await res.json()
+          if (!products?.length) break
+          for (const p of products) {
+            if (!finishMap[p.handle]) finishMap[p.handle] = finish
+          }
+          if (products.length < 250) break
+          page++
+          await sleep(200)
+        }
+      }
+      console.log(`${Object.keys(finishMap).length} handles mapped`)
+    } catch (e) { console.error('\n  Error building finish map:', e.message) }
+
     process.stdout.write('Fetching Cracked (full catalog)... ')
     try {
       const allProducts = await fetchShopifyAllProducts('crackedpolish.com', 'nail-polish')
       const products = allProducts.filter(p => {
         const tags = (p.tags ?? []).map(t => t.toLowerCase())
-        // Exclude multi-polish collection bundles (tagged 'collection')
         if (tags.includes('collection')) return false
         return true
       })
       const polishes = products.map(p => {
-        const finish = finishFromName(p.title)
+        const finish = finishMap[p.handle] ?? finishFromName(p.title)
         const price = parseFloat(p.variants?.[0]?.price ?? '12')
         const image = p.images?.[0]?.src ?? null
         const record = {
