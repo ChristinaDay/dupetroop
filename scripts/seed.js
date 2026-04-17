@@ -17,7 +17,6 @@ const brands = [
   { name: 'Mooncat', slug: 'mooncat', website_url: 'https://mooncat.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
   { name: 'Cirque Colors', slug: 'cirque-colors', website_url: 'https://cirquecolors.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
   { name: 'ILNP', slug: 'ilnp', website_url: 'https://ilnp.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
-  { name: 'Different Dimension', slug: 'different-dimension', website_url: 'https://differentdimension.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
   { name: 'Glisten & Glow', slug: 'glisten-and-glow', website_url: 'https://glistenandglow.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
   { name: 'Rogue Lacquer', slug: 'rogue-lacquer', website_url: 'https://roguelacquer.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
   { name: 'Supernatural', slug: 'supernatural', website_url: 'https://supernaturallacquer.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
@@ -38,10 +37,6 @@ function getPolishes(brandMap) {
   return [
     // Mooncat — Bloodbender is the canonical example; full catalog covered by seed-products.js
     { brand_id: brandMap['mooncat'], name: 'Bloodbender', slug: 'bloodbender', hex_color: '#8B1A2B', finish_category: 'multichrome', color_family: 'red', hex_secondary: '#4B0082', msrp_usd: 12, is_verified: true },
-
-    // Different Dimension — site offline, no catalog source; these are the only two known polishes
-    { brand_id: brandMap['different-dimension'], name: 'Outerspace', slug: 'outerspace', hex_color: '#1A1A3A', finish_category: 'multichrome', color_family: 'blue', hex_secondary: '#7B2FBE', msrp_usd: 13, is_verified: true },
-    { brand_id: brandMap['different-dimension'], name: 'Magpie', slug: 'magpie', hex_color: '#3A3A5A', finish_category: 'duochrome', color_family: 'blue', hex_secondary: '#5A8A6A', msrp_usd: 13, is_verified: true },
 
     // OPI
     { brand_id: brandMap['opi'], name: 'Lincoln Park After Dark', slug: 'lincoln-park-after-dark', hex_color: '#2D1A3A', finish_category: 'cream', color_family: 'purple', msrp_usd: 11, is_verified: true },
