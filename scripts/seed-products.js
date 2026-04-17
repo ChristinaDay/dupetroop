@@ -48,7 +48,7 @@ const NON_POLISH_KEYWORDS = [
   'bundle', 'gift', 'kit', 'set', 'remover', 'file', 'buffer',
   'sticker', 'nail art', 'replacement', 'brush', 'spatula', 'duo', 'trio',
   'quad', 'thinner', 'dropper', 'refill', 'prep pad', 'nail glue',
-  'acetone', 'cleanser', 'dehydrator', 'nail polish remover',
+  'acetone', 'cleanser', 'dehydrator', 'nail polish remover', 'cuticle oil',
 ]
 
 const NON_POLISH_PRODUCT_TYPES = [
