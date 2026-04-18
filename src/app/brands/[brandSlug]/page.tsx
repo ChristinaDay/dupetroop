@@ -48,14 +48,9 @@ export default async function BrandPage({ params }: PageProps) {
       </nav>
 
       <div className="flex items-start gap-5 mb-10">
-        {brand.logo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={brand.logo_url} alt={brand.name} className="h-16 w-16 rounded-full object-contain border border-border" />
-        ) : (
-          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-lg font-black text-muted-foreground">
-            {brand.name.slice(0, 2).toUpperCase()}
-          </div>
-        )}
+        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-lg font-black text-muted-foreground shrink-0">
+          {brand.name.slice(0, 2).toUpperCase()}
+        </div>
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-3xl font-black tracking-tight">{brand.name}</h1>

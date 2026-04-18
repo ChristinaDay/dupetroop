@@ -45,14 +45,9 @@ export default async function AdminBrandsPage() {
               className={`flex items-center gap-3 border border-border rounded-lg px-4 py-3 ${!brand.is_active ? 'opacity-50' : ''}`}
             >
               {/* Logo */}
-              {brand.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={brand.logo_url} alt={brand.name} className="h-8 w-8 rounded-full object-contain border border-border shrink-0" />
-              ) : (
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-black text-muted-foreground shrink-0">
-                  {brand.name.slice(0, 2).toUpperCase()}
-                </div>
-              )}
+              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-black text-muted-foreground shrink-0">
+                {brand.name.slice(0, 2).toUpperCase()}
+              </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">

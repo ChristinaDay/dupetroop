@@ -29,14 +29,9 @@ export default async function BrandsPage() {
             href={`/brands/${brand.slug}`}
             className="flex items-center gap-4 border border-border rounded-xl p-4 hover:border-primary hover:bg-accent transition-colors group"
           >
-            {brand.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={brand.logo_url} alt={brand.name} className="h-10 w-10 rounded-full object-contain border border-border" />
-            ) : (
-              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-black text-muted-foreground">
-                {brand.name.slice(0, 2).toUpperCase()}
-              </div>
-            )}
+            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-black text-muted-foreground">
+              {brand.name.slice(0, 2).toUpperCase()}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold group-hover:text-primary transition-colors truncate">{brand.name}</p>
               {brand.country_of_origin && (
