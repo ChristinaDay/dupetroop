@@ -71,7 +71,7 @@ export function TrendingPolishCard({ polish }: TrendingPolishCardProps) {
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <PolishBadge finish={polish.finish_category} />
             {polish.is_discontinued && (
-              <span className="text-xs text-muted-foreground italic">discontinued</span>
+              <span className="text-xs font-semibold text-foreground/50 uppercase tracking-wide">Discontinued</span>
             )}
             {polish.is_limited && (
               <span className="text-xs font-semibold text-electric">Limited Edition</span>

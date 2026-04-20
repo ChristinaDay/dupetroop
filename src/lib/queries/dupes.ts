@@ -1,12 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { DupeWithPolishes, DupeFilters } from '@/lib/types/app.types'
 
-function excludeDiscontinued(dupes: DupeWithPolishes[]): DupeWithPolishes[] {
-  return dupes.filter(
-    (d) => !d.polish_a.is_discontinued && !d.polish_b.is_discontinued
-  )
-}
-
 const DUPE_SELECT = `
   *,
   polish_a:polishes!polish_a_id(*, brand:brands(*), collection:collections(*)),
@@ -50,7 +44,7 @@ export async function getDupes(filters: DupeFilters = {}): Promise<{
   const { data, count, error } = await query
   if (error) throw error
 
-  const dupes = excludeDiscontinued((data as unknown as DupeWithPolishes[]) ?? [])
+  const dupes = ((data as unknown as DupeWithPolishes[]) ?? [])
   return {
     dupes,
     total: count ?? 0,
@@ -79,7 +73,7 @@ export async function getRelatedDupes(dupeId: string, polishAId: string, polishB
     .order('avg_overall', { ascending: false, nullsFirst: false })
     .limit(limit)
 
-  return excludeDiscontinued((data as unknown as DupeWithPolishes[]) ?? [])
+  return (data as unknown as DupeWithPolishes[]) ?? []
 }
 
 export async function getDupesForPolish(polishId: string): Promise<DupeWithPolishes[]> {
@@ -91,7 +85,7 @@ export async function getDupesForPolish(polishId: string): Promise<DupeWithPolis
     .or(`polish_a_id.eq.${polishId},polish_b_id.eq.${polishId}`)
     .order('avg_overall', { ascending: false, nullsFirst: false })
 
-  return excludeDiscontinued((data as unknown as DupeWithPolishes[]) ?? [])
+  return (data as unknown as DupeWithPolishes[]) ?? []
 }
 
 export async function getFeaturedDupes(limit = 6): Promise<DupeWithPolishes[]> {
@@ -106,7 +100,7 @@ export async function getFeaturedDupes(limit = 6): Promise<DupeWithPolishes[]> {
     .order('avg_overall', { ascending: false, nullsFirst: false })
     .limit(limit)
 
-  const ratedFiltered = excludeDiscontinued((rated as unknown as DupeWithPolishes[]) ?? [])
+  const ratedFiltered = ((rated as unknown as DupeWithPolishes[]) ?? [])
   if (ratedFiltered.length >= 3) return ratedFiltered
 
   const { data: recent } = await supabase
@@ -116,7 +110,7 @@ export async function getFeaturedDupes(limit = 6): Promise<DupeWithPolishes[]> {
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  return excludeDiscontinued((recent as unknown as DupeWithPolishes[]) ?? [])
+  return (recent as unknown as DupeWithPolishes[]) ?? []
 }
 
 export async function getRecentDupes(limit = 10): Promise<DupeWithPolishes[]> {
@@ -128,7 +122,7 @@ export async function getRecentDupes(limit = 10): Promise<DupeWithPolishes[]> {
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  return excludeDiscontinued((data as unknown as DupeWithPolishes[]) ?? [])
+  return (data as unknown as DupeWithPolishes[]) ?? []
 }
 
 export async function getPendingDupes(): Promise<DupeWithPolishes[]> {
@@ -154,7 +148,7 @@ export async function getTrendingDupes(limit = 6): Promise<DupeWithPolishes[]> {
     .order('featured_rank', { ascending: true, nullsFirst: false })
     .limit(limit)
 
-  return excludeDiscontinued((data as unknown as DupeWithPolishes[]) ?? [])
+  return (data as unknown as DupeWithPolishes[]) ?? []
 }
 
 export async function checkDupeExists(

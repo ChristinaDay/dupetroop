@@ -43,7 +43,7 @@ export function PolishCard({ polish, showDupeCount = false }: PolishCardProps) {
               </span>
             )}
             {polish.is_discontinued && (
-              <span className="rounded-full bg-background/80 text-muted-foreground text-[10px] font-medium px-2 py-0.5 backdrop-blur-sm border border-border/50">
+              <span className="rounded-full bg-background/90 text-foreground/60 text-[10px] font-semibold px-2 py-0.5 backdrop-blur-sm border border-border tracking-wide uppercase">
                 Discontinued
               </span>
             )}

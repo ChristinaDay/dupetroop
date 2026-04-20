@@ -101,7 +101,12 @@ export default async function PolishDetailPage({ params }: PageProps) {
           )}
           <div className="flex flex-wrap gap-2 mt-3">
             <PolishBadge finish={polish.finish_category} />
-            {polish.is_discontinued && <Badge variant="outline">Discontinued</Badge>}
+            {polish.is_discontinued && (
+              <Badge variant="outline">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                Discontinued{(polish as any).discontinued_at ? ` · ${new Date((polish as any).discontinued_at).getUTCFullYear()}` : ''}
+              </Badge>
+            )}
             {polish.is_limited && <Badge variant="outline" className="text-amber-600 border-amber-600">Limited Edition</Badge>}
             {polish.is_topper && <Badge variant="outline">Topper</Badge>}
           </div>

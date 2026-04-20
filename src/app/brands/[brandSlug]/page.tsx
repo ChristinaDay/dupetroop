@@ -48,8 +48,10 @@ export default async function BrandPage({ params }: PageProps) {
       </nav>
 
       <div className="flex items-start gap-5 mb-10">
-        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-lg font-black text-muted-foreground shrink-0">
-          {brand.name.slice(0, 2).toUpperCase()}
+        <div className="h-16 w-16 rounded-full bg-white flex items-center justify-center text-lg font-black text-muted-foreground shrink-0 overflow-hidden border border-border/40">
+          {brand.logo_url
+            ? <img src={brand.logo_url} alt={brand.name} className="h-12 w-12 object-contain" />
+            : brand.name.slice(0, 2).toUpperCase()}
         </div>
         <div>
           <div className="flex items-center gap-2 flex-wrap">

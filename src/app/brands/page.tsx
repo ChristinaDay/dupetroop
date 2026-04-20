@@ -29,8 +29,10 @@ export default async function BrandsPage() {
             href={`/brands/${brand.slug}`}
             className="flex items-center gap-4 border border-border rounded-xl p-4 hover:border-primary hover:bg-accent transition-colors group"
           >
-            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-black text-muted-foreground">
-              {brand.name.slice(0, 2).toUpperCase()}
+            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-sm font-black text-muted-foreground shrink-0 overflow-hidden border border-border/40">
+              {brand.logo_url
+                ? <img src={brand.logo_url} alt={brand.name} className="h-8 w-8 object-contain" />
+                : brand.name.slice(0, 2).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold group-hover:text-primary transition-colors truncate">{brand.name}</p>
