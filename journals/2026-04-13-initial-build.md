@@ -1157,6 +1157,50 @@ SCALE = 9px max displacement. At a ~1400×500 hero, this is ~4,900 `drawImage` c
 
 ---
 
+## Session 19 — April 20, 2026
+
+### What was completed
+
+#### Magnetic flake orientation — cursor as wand
+
+Rewrote the particle rendering and physics in `MagneticGlitter.tsx` so the cursor behaves like a magnetic wand held over wet polish.
+
+**The core insight:** Real magnetic polish particles are metallic platelets that *rotate* to align with the field — they don't just drift toward the magnet. That orientation change is the visual signature of the effect. The previous implementation only moved particles; this one also orients them.
+
+**Particle rendering: circles → oriented strokes**
+
+Each particle is now drawn as a short line segment at its `angle` rather than a filled circle. This simulates the elongated flake shape of magnetic polish particles. Stroke length grows in the cat-eye band (`catEye * 3.5` multiplier), mimicking flakes "standing up" taller when the magnet is directly overhead. A shorter white specular stroke overlays each flake, offset toward the light source.
+
+**`angle` property + `lineAngleDiff()` helper**
+
+Each particle carries an `angle` that updates independently from its position. The `lineAngleDiff` helper handles the π-symmetry of lines correctly — a line at 0° and 180° are identical, so rotation always takes the shortest path:
+
+```
+da = da - π * round(da / π)    // maps to [-π/2, π/2]
+```
+
+**Two-radius system**
+
+`ALIGN_RADIUS = 280px` controls orientation; `MAGNETIC_RADIUS = 130px` controls position force. Particles visibly rotate into arching field lines *before* they start moving toward the wand tip — the pattern forms as the cursor approaches, not only when it's directly overhead. This mirrors the real experience of watching cat-eye polish respond as you bring a magnet close.
+
+**Resting-state relaxation**
+
+When the cursor leaves, each particle's angle slowly drifts back toward the local flow field direction rather than freezing in place. Gives the surface a "settling" quality after the wand passes.
+
+**Constants tuned:**
+- `MAGNETIC_STRENGTH`: 0.08 → 0.10
+- `MAX_SPEED`: 0.7 → 1.2 (allows faster gliding along field lines)
+- Removed unused constants (`MAGNETIC_POWER`, `DRAG_RADIUS`, `DRAG_STRENGTH`, `VORTEX_AMP`) — defined in previous sessions but never applied
+
+### Still to do (nice-to-haves)
+
+- [ ] Email notifications when a submitted dupe/polish is approved or rejected
+- [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
+- [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
+- [ ] Merge `feat/magnetic-hero-bg` into main
+
+---
+
 ## How to Run Locally
 
 ```bash
