@@ -12,36 +12,63 @@ interface Particle {
   color: string
   shimmerPhase: number
   shimmerSpeed: number
-  noiseOffsetX: number
-  noiseOffsetY: number
 }
 
+// Magnetic polish palette: warm gold shimmer, hot magenta, rose copper, deep purple, white sparkle
 const PALETTE: string[] = [
-  '#e040fb', '#d946ef', '#e040fb', '#d946ef', '#d946ef',
-  '#f0e040', '#f0e040',
-  '#22d3ee', '#22d3ee', '#0bc5c5', '#0bc5c5',
-  '#ffffff', '#ffffff', '#e0e0ff',
+  '#f59e0b', '#fbbf24', '#f0b429', '#d97706', '#f59e0b',
+  '#e040fb', '#d946ef', '#e040fb',
+  '#f43f5e', '#fb923c',
+  '#a855f7',
+  '#ffffff', '#fff8e7', '#ffffff',
 ]
 
 const PARTICLE_COUNT = 2500
-const MAGNETIC_RADIUS = 180
+const MAGNETIC_RADIUS = 72
 const MAGNETIC_POWER = 1.5
-const MAGNETIC_STRENGTH = 0.18
-const DAMPING = 0.92
-const MAX_SPEED = 3.5
-const BASE_SPEED = 0.35
+const MAGNETIC_STRENGTH = 0.05   // gentle pull — syrupy resistance
+const DAMPING = 0.965            // high damping = thick fluid
+const MAX_SPEED = 0.7
+const BASE_SPEED = 0.07
 
+// Flow field — very slow organic drift
 const FF_A = 1.0
 const FF_F1 = 0.0018
 const FF_F2 = 0.0022
-const FF_S1 = 0.00045
-const FF_S2 = 0.00038
+const FF_S1 = 0.000012           // 10x slower time coefficients
+const FF_S2 = 0.000010
 const FF_B = 0.5
 const FF_F3 = 0.0035
 const FF_F4 = 0.0028
-const FF_S3 = 0.00062
-const FF_S4 = 0.00055
+const FF_S3 = 0.000018
+const FF_S4 = 0.000015
 const FF_SCALE = Math.PI / (FF_A + FF_B)
+
+// Background micro-texture (ambient surface undulation)
+const EMITTER_COUNT = 4
+const TILE = 6
+const EM_AMP = 3.5
+const EM_K = 0.040
+const EM_OMEGA = 0.0006
+const EM_DECAY = 0.0022
+
+// Mouse drag trail
+const MAX_TRAIL = 32
+const TRAIL_TAU = 800             // ms — how long a swirl persists
+const TRAIL_SIGMA_SQ = 100 * 100  // spatial influence radius squared
+const DRAG_AMP = 12               // pixels of drag displacement
+const VORTEX_AMP = 9              // pixels of rotational displacement
+const TRAIL_MAX_SPEED = 50        // cap stored velocity magnitude
+const TRAIL_R2_CUTOFF = 280 * 280 // skip tiles too far from trail point
+
+// Particle drag — mouse movement pushes nearby particles along
+const DRAG_RADIUS = 65
+const DRAG_RADIUS_SQ = DRAG_RADIUS * DRAG_RADIUS
+const DRAG_STRENGTH = 0.055
+
+// Cat-eye band — slowly sweeping diagonal shimmer
+const CAT_EYE_SPEED = 0.000016
+const CAT_EYE_WIDTH = 0.18
 
 function initParticles(width: number, height: number): Particle[] {
   const particles: Particle[] = []
@@ -58,8 +85,6 @@ function initParticles(width: number, height: number): Particle[] {
       color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
       shimmerPhase: Math.random() * Math.PI * 2,
       shimmerSpeed: 0.8 + Math.random() * 1.6,
-      noiseOffsetX: Math.random() * 1000,
-      noiseOffsetY: Math.random() * 1000,
     })
   }
   particles.sort((a, b) => (a.color < b.color ? -1 : 1))
@@ -68,7 +93,7 @@ function initParticles(width: number, height: number): Particle[] {
 
 export function MagneticGlitter() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const mouseRef = useRef<{ x: number; y: number }>({ x: -9999, y: -9999 })
+  const mouseRef = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -82,6 +107,35 @@ export function MagneticGlitter() {
     let animId: number
     let lastTime = 0
 
+    const offscreen = document.createElement('canvas')
+    const offCtx = offscreen.getContext('2d')!
+
+    // Ambient background emitters
+    const emX = new Float32Array(EMITTER_COUNT)
+    const emY = new Float32Array(EMITTER_COUNT)
+    const emVX = new Float32Array(EMITTER_COUNT)
+    const emVY = new Float32Array(EMITTER_COUNT)
+    const emPhase = new Float32Array(EMITTER_COUNT)
+
+    function initEmitters(w: number, h: number) {
+      for (let e = 0; e < EMITTER_COUNT; e++) {
+        emX[e] = (e + 0.5) / EMITTER_COUNT * w + (Math.random() - 0.5) * w * 0.25
+        emY[e] = h * (0.15 + Math.random() * 0.7)
+        emVX[e] = (Math.random() - 0.5) * 0.04
+        emVY[e] = (Math.random() - 0.5) * 0.03
+        emPhase[e] = (e / EMITTER_COUNT) * Math.PI * 2
+      }
+    }
+
+    // Mouse drag trail — ring buffer of recent positions + velocities
+    const trailX = new Float32Array(MAX_TRAIL)
+    const trailY = new Float32Array(MAX_TRAIL)
+    const trailVX = new Float32Array(MAX_TRAIL)
+    const trailVY = new Float32Array(MAX_TRAIL)
+    const trailTime = new Float32Array(MAX_TRAIL)
+    let trailHead = 0
+    let trailSize = 0
+
     function setSize() {
       const { width, height } = container!.getBoundingClientRect()
       const w = Math.floor(width)
@@ -89,16 +143,47 @@ export function MagneticGlitter() {
       if (canvas!.width !== w || canvas!.height !== h) {
         canvas!.width = w
         canvas!.height = h
+        offscreen.width = w
+        offscreen.height = h
         particles = initParticles(w, h)
+        initEmitters(w, h)
       }
     }
 
     function onMouseMove(e: MouseEvent) {
       const rect = canvas!.getBoundingClientRect()
-      mouseRef.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
+      const nx = e.clientX - rect.left
+      const ny = e.clientY - rect.top
+      const prev = mouseRef.current
+
+      // First event — just record position, don't generate a trail point
+      if (!prev) {
+        mouseRef.current = { x: nx, y: ny, vx: 0, vy: 0 }
+        return
       }
+
+      let vx = nx - prev.x
+      let vy = ny - prev.y
+      const speed = Math.sqrt(vx * vx + vy * vy)
+
+      mouseRef.current = { x: nx, y: ny, vx, vy }
+
+      if (speed < 0.8) return  // skip jitter
+
+      // Cap velocity so fast swipes don't blow out the displacement
+      if (speed > TRAIL_MAX_SPEED) {
+        const s = TRAIL_MAX_SPEED / speed
+        vx *= s; vy *= s
+      }
+
+      const idx = trailHead % MAX_TRAIL
+      trailX[idx] = nx
+      trailY[idx] = ny
+      trailVX[idx] = vx
+      trailVY[idx] = vy
+      trailTime[idx] = performance.now()
+      trailHead = (trailHead + 1) % MAX_TRAIL
+      trailSize = Math.min(trailSize + 1, MAX_TRAIL)
     }
 
     function update(t: number, dt: number) {
@@ -107,36 +192,47 @@ export function MagneticGlitter() {
       const w = canvas!.width
       const h = canvas!.height
       const magRadSq = MAGNETIC_RADIUS * MAGNETIC_RADIUS
+      if (!mouse) return
+
+      // Drift emitters
+      for (let e = 0; e < EMITTER_COUNT; e++) {
+        emX[e] += emVX[e] * dtFactor
+        emY[e] += emVY[e] * dtFactor
+        if (emX[e] < 0)  { emX[e] = 0;  emVX[e] = Math.abs(emVX[e]) }
+        else if (emX[e] > w) { emX[e] = w; emVX[e] = -Math.abs(emVX[e]) }
+        if (emY[e] < 0)  { emY[e] = 0;  emVY[e] = Math.abs(emVY[e]) }
+        else if (emY[e] > h) { emY[e] = h; emVY[e] = -Math.abs(emVY[e]) }
+      }
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]
 
-        // Flow field
+        // Flow field — glacially slow organic drift
         const ffRaw =
           FF_A * Math.sin(p.x * FF_F1 + t * FF_S1) * Math.cos(p.y * FF_F2 + t * FF_S2) +
           FF_B * Math.sin(p.x * FF_F3 + t * FF_S3) * Math.cos(p.y * FF_F4 + t * FF_S4)
         const ffAngle = ffRaw * FF_SCALE
-        p.vx += Math.cos(ffAngle) * 0.018 * dtFactor
-        p.vy += Math.sin(ffAngle) * 0.018 * dtFactor
+        p.vx += Math.cos(ffAngle) * 0.003 * dtFactor
+        p.vy += Math.sin(ffAngle) * 0.003 * dtFactor
 
-        // Magnetic force
         const dx = mouse.x - p.x
         const dy = mouse.y - p.y
         const distSq = dx * dx + dy * dy
+
         if (distSq < magRadSq && distSq > 0.01) {
           const dist = Math.sqrt(distSq)
           const tFrac = 1 - dist / MAGNETIC_RADIUS
-          const force = Math.pow(tFrac, MAGNETIC_POWER) * MAGNETIC_STRENGTH * dtFactor
           const invDist = 1 / dist
+
+          // Magnetic attraction
+          const force = Math.pow(tFrac, MAGNETIC_POWER) * MAGNETIC_STRENGTH * dtFactor
           p.vx += dx * invDist * force
           p.vy += dy * invDist * force
         }
 
-        // Damping
         p.vx *= DAMPING
         p.vy *= DAMPING
 
-        // Speed cap
         const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
         if (speed > MAX_SPEED) {
           const inv = MAX_SPEED / speed
@@ -144,37 +240,127 @@ export function MagneticGlitter() {
           p.vy *= inv
         }
 
-        // Integrate
         p.x += p.vx * dtFactor
         p.y += p.vy * dtFactor
 
-        // Edge wrap
         if (p.x < -2) p.x += w + 4
         else if (p.x > w + 2) p.x -= w + 4
         if (p.y < -2) p.y += h + 4
         else if (p.y > h + 2) p.y -= h + 4
       }
+
     }
 
     function render(t: number) {
       const w = canvas!.width
       const h = canvas!.height
-      ctx!.clearRect(0, 0, w, h)
+
+      // --- Pass 1: particles to offscreen ---
+      offCtx.clearRect(0, 0, w, h)
+
+      const sweep = (t * CAT_EYE_SPEED) % 1.0
+      const catEyeLightX = 0.707
+      const catEyeLightY = -0.707
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]
-        const shimmer = 0.5 + 0.5 * Math.sin(t * 0.001 * p.shimmerSpeed + p.shimmerPhase)
-        const radius = Math.max(0.5, p.baseRadius * (0.6 + 0.4 * shimmer))
-        const alpha = p.baseAlpha * (0.3 + 0.7 * shimmer)
 
-        ctx!.globalAlpha = alpha
-        ctx!.fillStyle = p.color
-        ctx!.beginPath()
-        ctx!.arc(p.x, p.y, radius, 0, Math.PI * 2)
-        ctx!.fill()
+        const diagProj = p.x / w * 0.6 + p.y / h * 0.4
+        const bandDist = Math.abs(diagProj - sweep)
+        const catEye = Math.max(0, 1 - Math.min(bandDist, 1 - bandDist) / CAT_EYE_WIDTH) ** 2
+
+        const shimmer = 0.5 + 0.5 * Math.sin(t * 0.00028 * p.shimmerSpeed + p.shimmerPhase)
+        const brightness = shimmer + catEye * 2.8
+        const radius = Math.max(0.5, p.baseRadius * (0.55 + 0.45 * shimmer + 0.25 * catEye))
+        const alpha = Math.min(0.92, p.baseAlpha * (0.15 + 0.85 * brightness))
+
+        offCtx.fillStyle = p.color
+        offCtx.globalAlpha = alpha
+        offCtx.beginPath()
+        offCtx.arc(p.x, p.y, radius, 0, Math.PI * 2)
+        offCtx.fill()
+
+        const specStrength = shimmer * 0.3 + catEye * 1.1
+        if (specStrength > 0.06) {
+          offCtx.globalAlpha = Math.min(1, p.baseAlpha * specStrength * 1.5)
+          offCtx.fillStyle = '#ffffff'
+          offCtx.beginPath()
+          offCtx.arc(
+            p.x + catEyeLightX * radius * 0.4,
+            p.y + catEyeLightY * radius * 0.4,
+            radius * 0.35,
+            0, Math.PI * 2
+          )
+          offCtx.fill()
+        }
       }
+      offCtx.globalAlpha = 1
 
-      ctx!.globalAlpha = 1
+      // --- Pass 2: displacement field ---
+      // Background: ambient wave texture from slow emitters
+      // Mouse: drag trail creates directional smear + trailing vortex swirl
+      ctx!.clearRect(0, 0, w, h)
+      const now = performance.now()
+
+      for (let ty = 0; ty < h; ty += TILE) {
+        const th = Math.min(TILE, h - ty)
+        const cy = ty + th * 0.5
+        for (let tx = 0; tx < w; tx += TILE) {
+          const tw = Math.min(TILE, w - tx)
+          const cx = tx + tw * 0.5
+
+          let gdx = 0
+          let gdy = 0
+
+          // Ambient background undulation
+          for (let e = 0; e < EMITTER_COUNT; e++) {
+            const ddx = cx - emX[e]
+            const ddy = cy - emY[e]
+            const r = Math.sqrt(ddx * ddx + ddy * ddy) + 0.1
+            const envelope = Math.exp(-r * EM_DECAY)
+            const wave = Math.cos(r * EM_K - t * EM_OMEGA + emPhase[e])
+            const contrib = envelope * wave * EM_AMP
+            gdx += contrib * ddx / r
+            gdy += contrib * ddy / r
+          }
+
+          // Drag trail — each recent mouse position contributes:
+          //   1. Drag: push tiles in the direction the mouse was moving
+          //   2. Vortex: tangential rotation around the trail point (trailing swirl)
+          for (let ti = 0; ti < trailSize; ti++) {
+            const idx = (trailHead - 1 - ti + MAX_TRAIL) % MAX_TRAIL
+            const age = now - trailTime[idx]
+            if (age > TRAIL_TAU * 3.5) break  // older points contribute nothing
+
+            const ddx = cx - trailX[idx]
+            const ddy = cy - trailY[idx]
+            const dist2 = ddx * ddx + ddy * ddy
+            if (dist2 > TRAIL_R2_CUTOFF) continue
+
+            const timeFade = Math.exp(-age / TRAIL_TAU)
+            const distFade = Math.exp(-dist2 / (2 * TRAIL_SIGMA_SQ))
+            const r = Math.sqrt(dist2) + 0.1
+
+            const tvx = trailVX[idx]
+            const tvy = trailVY[idx]
+            const tspeed = Math.sqrt(tvx * tvx + tvy * tvy)
+            if (tspeed < 0.5) continue
+
+            const fade = timeFade * distFade
+
+            // Drag: smear tiles in the movement direction
+            gdx += (tvx / tspeed) * fade * DRAG_AMP
+            gdy += (tvy / tspeed) * fade * DRAG_AMP
+
+            // Vortex: tangential rotation around trail point (counterclockwise)
+            // (-ddy, ddx) is the unit tangent to the radial direction
+            gdx += (-ddy / r) * fade * VORTEX_AMP
+            gdy += (ddx / r) * fade * VORTEX_AMP
+          }
+
+          ctx!.drawImage(offscreen, tx, ty, tw, th, tx + Math.round(gdx), ty + Math.round(gdy), tw, th)
+        }
+      }
     }
 
     function tick(timestamp: number) {
