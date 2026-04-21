@@ -9,21 +9,30 @@ interface Particle {
   vy: number
   baseRadius: number
   baseAlpha: number
-  hueOffset: number  // per-particle hue nudge so adjacent particles aren't identical
+  hueOffset: number
   shimmerPhase: number
   shimmerSpeed: number
   angle: number
 }
 
+interface Smoke {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  radius: number
+  alpha: number
+  phase: number
+}
+
 const PARTICLE_COUNT = 7000
 
-// Holo band: how many px before the color cycles through the full spectrum.
-// Smaller = tighter rainbow bands.
 const HOLO_BAND_PX = 160
-// How fast the rainbow axis slowly rotates (radians/ms)
 const HOLO_AXIS_SPEED = 0.00006
-// How fast the whole hue sweeps along the axis (hue turns/ms)
 const HOLO_SWEEP_SPEED = 0.00018
+// Warp strength: bends the holo bands into organic curves instead of straight stripes
+const HOLO_WARP = 55
+
 const MAGNETIC_RADIUS = 130
 const DIPOLE_OFFSET = 40
 const MAGNETIC_STRENGTH = 0.015
@@ -48,6 +57,13 @@ const FF_SCALE = Math.PI / (FF_A + FF_B)
 const CAT_EYE_SPEED = 0.000016
 const CAT_EYE_WIDTH = 0.18
 
+const SMOKE_COUNT = 70
+const SMOKE_SPEED = 0.018
+const SMOKE_DAMPING = 0.975
+const SMOKE_MAX_SPEED = 0.35
+const SMOKE_MAGNET_RADIUS = 420
+const SMOKE_MAGNET_STRENGTH = 0.006
+
 function initParticles(width: number, height: number): Particle[] {
   const particles: Particle[] = []
   for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -69,6 +85,23 @@ function initParticles(width: number, height: number): Particle[] {
   return particles
 }
 
+function initSmoke(width: number, height: number): Smoke[] {
+  const smoke: Smoke[] = []
+  for (let i = 0; i < SMOKE_COUNT; i++) {
+    const vel = Math.random() * Math.PI * 2
+    smoke.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: Math.cos(vel) * SMOKE_SPEED * (0.4 + Math.random() * 0.6),
+      vy: Math.sin(vel) * SMOKE_SPEED * (0.4 + Math.random() * 0.6) - 0.008, // faint upward drift
+      radius: 40 + Math.random() * 70,
+      alpha: 0.025 + Math.random() * 0.04,
+      phase: Math.random() * Math.PI * 2,
+    })
+  }
+  return smoke
+}
+
 function lineAngleDiff(target: number, current: number): number {
   const da = target - current
   return da - Math.PI * Math.round(da / Math.PI)
@@ -87,6 +120,7 @@ export function MagneticGlitter() {
     if (!container) return
 
     let particles: Particle[] = []
+    let smoke: Smoke[] = []
     let animId: number
     let lastTime = 0
 
@@ -98,12 +132,51 @@ export function MagneticGlitter() {
         canvas!.width = w
         canvas!.height = h
         particles = initParticles(w, h)
+        smoke = initSmoke(w, h)
       }
     }
 
     function onMouseMove(e: MouseEvent) {
       const rect = canvas!.getBoundingClientRect()
       mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    }
+
+    function updateSmoke(dt: number) {
+      const dtFactor = dt / 16.67
+      const mouse = mouseRef.current
+      const w = canvas!.width
+      const h = canvas!.height
+      for (let i = 0; i < smoke.length; i++) {
+        const s = smoke[i]
+
+        if (mouse) {
+          const dx = mouse.x - s.x
+          const dy = mouse.y - s.y
+          const dist = Math.sqrt(dx * dx + dy * dy) + 0.1
+          if (dist < SMOKE_MAGNET_RADIUS) {
+            const falloff = (1 - dist / SMOKE_MAGNET_RADIUS) ** 2
+            const force = SMOKE_MAGNET_STRENGTH * falloff * dtFactor
+            s.vx += (dx / dist) * force
+            s.vy += (dy / dist) * force
+          }
+        }
+
+        s.vx *= SMOKE_DAMPING
+        s.vy *= SMOKE_DAMPING
+        const spd = Math.sqrt(s.vx * s.vx + s.vy * s.vy)
+        if (spd > SMOKE_MAX_SPEED) {
+          s.vx = s.vx / spd * SMOKE_MAX_SPEED
+          s.vy = s.vy / spd * SMOKE_MAX_SPEED
+        }
+
+        s.x += s.vx * dtFactor
+        s.y += s.vy * dtFactor
+        const m = s.radius
+        if (s.x < -m) s.x += w + m * 2
+        else if (s.x > w + m) s.x -= w + m * 2
+        if (s.y < -m) s.y += h + m * 2
+        else if (s.y > h + m) s.y -= h + m * 2
+      }
     }
 
     function update(t: number, dt: number) {
@@ -174,20 +247,52 @@ export function MagneticGlitter() {
       }
     }
 
+    function renderSmoke(t: number) {
+      const holoAxis = t * HOLO_AXIS_SPEED
+      const holoSweep = t * HOLO_SWEEP_SPEED
+      const warpAxis = holoAxis + Math.PI * 0.4
+
+      for (let i = 0; i < smoke.length; i++) {
+        const s = smoke[i]
+
+        // Same holo color derivation as particles — smoke blobs pick up the field color at their center
+        const projPrimary = s.x * Math.cos(holoAxis) + s.y * Math.sin(holoAxis)
+        const projWarp = s.x * Math.cos(warpAxis) + s.y * Math.sin(warpAxis)
+        const proj = projPrimary + Math.sin(projWarp / (HOLO_BAND_PX * 1.4)) * HOLO_WARP
+        const hue = ((proj / HOLO_BAND_PX + holoSweep) % 1 + 1) % 1
+
+        const breathe = 0.75 + 0.25 * Math.sin(t * 0.00022 + s.phase)
+        const a = s.alpha * breathe
+
+        const grad = ctx!.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.radius)
+        grad.addColorStop(0, `hsla(${hue}turn, 75%, 72%, ${a})`)
+        grad.addColorStop(1, `hsla(${hue}turn, 75%, 72%, 0)`)
+        ctx!.fillStyle = grad
+        ctx!.beginPath()
+        ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2)
+        ctx!.fill()
+      }
+    }
+
     function render(t: number) {
       const w = canvas!.width
       const h = canvas!.height
 
       ctx!.clearRect(0, 0, w, h)
+
+      // Smoke layer — underneath particles
+      renderSmoke(t)
+
       ctx!.lineCap = 'round'
 
       const catEyeSweep = (t * CAT_EYE_SPEED) % 1.0
       const catEyeLightX = 0.707
       const catEyeLightY = -0.707
 
-      // Holo axis slowly rotates; hue sweeps along it over time
       const holoAxis = t * HOLO_AXIS_SPEED
       const holoSweep = t * HOLO_SWEEP_SPEED
+      // Perpendicular axis for 2D warp — bends straight stripes into curves
+      const warpAxis = holoAxis + Math.PI * 0.4
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]
@@ -200,10 +305,13 @@ export function MagneticGlitter() {
         const brightness = shimmer + catEye * 2.8
         const alpha = Math.min(0.92, p.baseAlpha * (0.40 + 0.60 * brightness))
 
-        // Holo color: project position onto slowly-rotating axis → rainbow bands
-        const proj = p.x * Math.cos(holoAxis) + p.y * Math.sin(holoAxis)
+        // Primary projection + sinusoidal warp along perpendicular axis
+        // makes the hue bands curve organically instead of running in straight lines
+        const projPrimary = p.x * Math.cos(holoAxis) + p.y * Math.sin(holoAxis)
+        const projWarp = p.x * Math.cos(warpAxis) + p.y * Math.sin(warpAxis)
+        const proj = projPrimary + Math.sin(projWarp / (HOLO_BAND_PX * 1.4)) * HOLO_WARP
         const hue = ((proj / HOLO_BAND_PX + holoSweep + p.hueOffset) % 1 + 1) % 1
-        const lightness = 55 + shimmer * 15 + catEye * 10  // flares brighter in the cat-eye band
+        const lightness = 55 + shimmer * 15 + catEye * 10
 
         const strokeHalf = p.baseRadius * (1.4 + catEye * 2.2 + shimmer * 0.6)
         const strokeW = Math.max(0.3, p.baseRadius * (0.55 + 0.18 * shimmer))
@@ -238,6 +346,7 @@ export function MagneticGlitter() {
     function tick(timestamp: number) {
       const dt = Math.min(timestamp - lastTime, 50)
       lastTime = timestamp
+      updateSmoke(dt)
       update(timestamp, dt)
       render(timestamp)
       animId = requestAnimationFrame(tick)
