@@ -29,7 +29,10 @@ export default async function BrandsPage() {
             href={`/brands/${brand.slug}`}
             className="flex items-center gap-4 border border-border rounded-xl p-4 hover:border-primary hover:bg-accent transition-colors group"
           >
-            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-sm font-black text-muted-foreground shrink-0 overflow-hidden border border-border/40">
+            <div
+              className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-black text-muted-foreground shrink-0 overflow-hidden border border-border/40"
+              style={{ background: 'white' }}
+            >
               {brand.logo_url
                 ? <img src={brand.logo_url} alt={brand.name} className="h-8 w-8 object-contain" />
                 : brand.name.slice(0, 2).toUpperCase()}
@@ -42,9 +45,6 @@ export default async function BrandsPage() {
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               {brand.is_indie && <Badge variant="secondary" className="text-xs">Indie</Badge>}
-              {brand.price_tier && (
-                <span className="text-xs text-muted-foreground font-mono">{priceTierLabel(brand.price_tier)}</span>
-              )}
             </div>
           </Link>
         ))}
