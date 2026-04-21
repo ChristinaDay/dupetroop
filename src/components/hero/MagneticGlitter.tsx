@@ -24,9 +24,10 @@ const PALETTE: string[] = [
 ]
 
 const PARTICLE_COUNT = 2500
-const MAGNETIC_RADIUS = 72
+const MAGNETIC_RADIUS = 80
+const DIPOLE_OFFSET = 40         // px — separation between poles
 const MAGNETIC_POWER = 1.5
-const MAGNETIC_STRENGTH = 0.05   // gentle pull — syrupy resistance
+const MAGNETIC_STRENGTH = 0.08
 const DAMPING = 0.965            // high damping = thick fluid
 const MAX_SPEED = 0.7
 const BASE_SPEED = 0.07
@@ -192,7 +193,6 @@ export function MagneticGlitter() {
       const w = canvas!.width
       const h = canvas!.height
       const magRadSq = MAGNETIC_RADIUS * MAGNETIC_RADIUS
-      if (!mouse) return
 
       // Drift emitters
       for (let e = 0; e < EMITTER_COUNT; e++) {
@@ -215,19 +215,32 @@ export function MagneticGlitter() {
         p.vx += Math.cos(ffAngle) * 0.003 * dtFactor
         p.vy += Math.sin(ffAngle) * 0.003 * dtFactor
 
-        const dx = mouse.x - p.x
-        const dy = mouse.y - p.y
-        const distSq = dx * dx + dy * dy
+        if (!mouse) continue
 
-        if (distSq < magRadSq && distSq > 0.01) {
-          const dist = Math.sqrt(distSq)
-          const tFrac = 1 - dist / MAGNETIC_RADIUS
-          const invDist = 1 / dist
+        // Dipole field: superimpose north (attracts) + south (repels)
+        // Particles follow the combined field vector → natural curved field lines
+        const dnx = mouse.x - p.x
+        const dny = mouse.y - p.y
+        const rn = Math.sqrt(dnx * dnx + dny * dny) + 0.1
 
-          // Magnetic attraction
-          const force = Math.pow(tFrac, MAGNETIC_POWER) * MAGNETIC_STRENGTH * dtFactor
-          p.vx += dx * invDist * force
-          p.vy += dy * invDist * force
+        if (rn < MAGNETIC_RADIUS * 2.5) {
+          const dsx = p.x - mouse.x
+          const dsy = p.y - (mouse.y + DIPOLE_OFFSET)
+          const rs = Math.sqrt(dsx * dsx + dsy * dsy) + 0.1
+
+          // 1/r² field from each pole, clamped near the poles to avoid singularity
+          const cn = Math.max(rn, 10)
+          const cs = Math.max(rs, 10)
+          const Bx = dnx / (cn * cn) + dsx / (cs * cs) * 0.45
+          const By = dny / (cn * cn) + dsy / (cs * cs) * 0.45
+          const Bmag = Math.sqrt(Bx * Bx + By * By)
+
+          if (Bmag > 0.00001) {
+            const falloff = Math.max(0, 1 - rn / (MAGNETIC_RADIUS * 2.5))
+            const fScale = falloff * MAGNETIC_STRENGTH * dtFactor
+            p.vx += (Bx / Bmag) * fScale
+            p.vy += (By / Bmag) * fScale
+          }
         }
 
         p.vx *= DAMPING
@@ -351,11 +364,6 @@ export function MagneticGlitter() {
             // Drag: smear tiles in the movement direction
             gdx += (tvx / tspeed) * fade * DRAG_AMP
             gdy += (tvy / tspeed) * fade * DRAG_AMP
-
-            // Vortex: tangential rotation around trail point (counterclockwise)
-            // (-ddy, ddx) is the unit tangent to the radial direction
-            gdx += (-ddy / r) * fade * VORTEX_AMP
-            gdy += (ddx / r) * fade * VORTEX_AMP
           }
 
           ctx!.drawImage(offscreen, tx, ty, tw, th, tx + Math.round(gdx), ty + Math.round(gdy), tw, th)
