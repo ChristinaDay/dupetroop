@@ -9,21 +9,21 @@ interface Particle {
   vy: number
   baseRadius: number
   baseAlpha: number
-  color: string
+  hueOffset: number  // per-particle hue nudge so adjacent particles aren't identical
   shimmerPhase: number
   shimmerSpeed: number
   angle: number
 }
 
-const PALETTE: string[] = [
-  '#f59e0b', '#fbbf24', '#f0b429', '#d97706', '#f59e0b',
-  '#e040fb', '#d946ef', '#e040fb',
-  '#f43f5e', '#fb923c',
-  '#a855f7',
-  '#ffffff', '#fff8e7', '#ffffff',
-]
+const PARTICLE_COUNT = 7000
 
-const PARTICLE_COUNT = 4500
+// Holo band: how many px before the color cycles through the full spectrum.
+// Smaller = tighter rainbow bands.
+const HOLO_BAND_PX = 160
+// How fast the rainbow axis slowly rotates (radians/ms)
+const HOLO_AXIS_SPEED = 0.00006
+// How fast the whole hue sweeps along the axis (hue turns/ms)
+const HOLO_SWEEP_SPEED = 0.00018
 const MAGNETIC_RADIUS = 130
 const DIPOLE_OFFSET = 40
 const MAGNETIC_STRENGTH = 0.015
@@ -60,13 +60,12 @@ function initParticles(width: number, height: number): Particle[] {
       vy: Math.sin(vel) * speed,
       baseRadius: 0.3 + Math.random() * 0.9,
       baseAlpha: 0.65 + Math.random() * 0.30,
-      color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+      hueOffset: (Math.random() - 0.5) * 0.06,
       shimmerPhase: Math.random() * Math.PI * 2,
       shimmerSpeed: 0.8 + Math.random() * 1.6,
       angle: Math.random() * Math.PI,
     })
   }
-  particles.sort((a, b) => (a.color < b.color ? -1 : 1))
   return particles
 }
 
@@ -182,27 +181,36 @@ export function MagneticGlitter() {
       ctx!.clearRect(0, 0, w, h)
       ctx!.lineCap = 'round'
 
-      const sweep = (t * CAT_EYE_SPEED) % 1.0
+      const catEyeSweep = (t * CAT_EYE_SPEED) % 1.0
       const catEyeLightX = 0.707
       const catEyeLightY = -0.707
+
+      // Holo axis slowly rotates; hue sweeps along it over time
+      const holoAxis = t * HOLO_AXIS_SPEED
+      const holoSweep = t * HOLO_SWEEP_SPEED
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]
 
         const diagProj = p.x / w * 0.6 + p.y / h * 0.4
-        const bandDist = Math.abs(diagProj - sweep)
+        const bandDist = Math.abs(diagProj - catEyeSweep)
         const catEye = Math.max(0, 1 - Math.min(bandDist, 1 - bandDist) / CAT_EYE_WIDTH) ** 2
 
         const shimmer = 0.5 + 0.5 * Math.sin(t * 0.00028 * p.shimmerSpeed + p.shimmerPhase)
         const brightness = shimmer + catEye * 2.8
-        const alpha = Math.min(0.92, p.baseAlpha * (0.15 + 0.85 * brightness))
+        const alpha = Math.min(0.92, p.baseAlpha * (0.40 + 0.60 * brightness))
+
+        // Holo color: project position onto slowly-rotating axis → rainbow bands
+        const proj = p.x * Math.cos(holoAxis) + p.y * Math.sin(holoAxis)
+        const hue = ((proj / HOLO_BAND_PX + holoSweep + p.hueOffset) % 1 + 1) % 1
+        const lightness = 55 + shimmer * 15 + catEye * 10  // flares brighter in the cat-eye band
 
         const strokeHalf = p.baseRadius * (1.4 + catEye * 2.2 + shimmer * 0.6)
         const strokeW = Math.max(0.3, p.baseRadius * (0.55 + 0.18 * shimmer))
         const cosA = Math.cos(p.angle)
         const sinA = Math.sin(p.angle)
 
-        ctx!.strokeStyle = p.color
+        ctx!.strokeStyle = `hsl(${hue}turn 85% ${lightness}%)`
         ctx!.globalAlpha = alpha
         ctx!.lineWidth = strokeW
         ctx!.beginPath()
