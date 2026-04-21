@@ -24,11 +24,24 @@ interface TrailPoint {
 }
 
 const PARTICLE_COUNT = 7000
+const PARTICLE_COUNT_2 = 4500
+const PARTICLE_COUNT_BG = 3500  // background fill layer — uniform coverage, no blank spots
 
-const HOLO_BAND_PX = 160
+// Layer 2 — slower magnetic response (cursor influence felt less immediately)
+const ALIGN_STRENGTH_2 = 0.013
+const MAGNETIC_STRENGTH_2 = 0.006
+const DAMPING_2 = 0.94
+const MAX_SPEED_2 = 0.25
+const BASE_SPEED_2 = 0.015
+
+// Background layer — very slow drift, no magnetic response, stays dispersed
+const BASE_SPEED_BG = 0.008
+const MAX_SPEED_BG = 0.12
+
+const HOLO_BAND_PX = 210
 const HOLO_AXIS_SPEED = 0.000030
 const HOLO_SWEEP_SPEED = 0.000090
-const HOLO_WARP = 55
+const HOLO_WARP = 105
 
 const MAGNETIC_RADIUS = 130
 const DIPOLE_OFFSET = 40
@@ -81,16 +94,29 @@ const FLUID_TRAIL_DECAY = 480
 const CHROMA_OFFSET = 2.5
 const CHROMA_ALPHA = 0.13
 
-// Pearl palette: blue-violet → purple → fuchsia/pink
-const PALETTE_HUE_A = 0.640
-const PALETTE_HUE_B = 0.800
-const PALETTE_HUE_C = 0.930
+// Layer 1 chameleon palette: gold → green → teal → indigo → violet → (back via magenta)
+const PALETTE_HUE_A = 0.13   // gold/amber
+const PALETTE_HUE_B = 0.33   // green
+const PALETTE_HUE_C = 0.50   // cyan/teal
+const PALETTE_HUE_D = 0.66   // blue/indigo
+const PALETTE_HUE_E = 0.82   // violet/purple
 
 function paletteHue(raw: number): number {
-  const t = ((raw % 1) + 1) % 1 * 3
+  const t = ((raw % 1) + 1) % 1 * 5
   if (t < 1) return PALETTE_HUE_A + t * (PALETTE_HUE_B - PALETTE_HUE_A)
   if (t < 2) return PALETTE_HUE_B + (t - 1) * (PALETTE_HUE_C - PALETTE_HUE_B)
-  return PALETTE_HUE_C + (t - 2) * (PALETTE_HUE_A - PALETTE_HUE_C)
+  if (t < 3) return PALETTE_HUE_C + (t - 2) * (PALETTE_HUE_D - PALETTE_HUE_C)
+  if (t < 4) return PALETTE_HUE_D + (t - 3) * (PALETTE_HUE_E - PALETTE_HUE_D)
+  // wrap back to A through magenta/red (short path over hue 1.0)
+  return PALETTE_HUE_E + (t - 4) * (PALETTE_HUE_A + 1 - PALETTE_HUE_E)
+}
+
+// Layer 2 warm palette: oscillates fuchsia ↔ amber-gold through copper/red
+// Triangle wave keeps it bouncing on the warm side of the wheel with no cool-color crossings
+function paletteHue2(raw: number): number {
+  const u = ((raw % 1) + 1) % 1
+  const tri = u < 0.5 ? u * 2 : 2 - u * 2   // triangle 0→1→0
+  return 0.91 + tri * 0.24                    // 0.91 (fuchsia) ↔ 1.15=0.15 (amber), via red/copper
 }
 
 function initParticles(width: number, height: number): Particle[] {
@@ -105,9 +131,52 @@ function initParticles(width: number, height: number): Particle[] {
       vy: Math.sin(vel) * speed,
       baseRadius: 0.3 + Math.random() * 0.9,
       baseAlpha: 0.70 + Math.random() * 0.25,
-      hueOffset: (Math.random() - 0.5) * 0.02,
+      hueOffset: (Math.random() - 0.5) * 0.12,
       shimmerPhase: Math.random() * Math.PI * 2,
       shimmerSpeed: 0.8 + Math.random() * 1.6,
+      angle: Math.random() * Math.PI,
+    })
+  }
+  return particles
+}
+
+// Background: use both palette hues interleaved so the base field has chameleon colour
+function initParticlesBg(width: number, height: number): Particle[] {
+  const particles: Particle[] = []
+  for (let i = 0; i < PARTICLE_COUNT_BG; i++) {
+    const vel = Math.random() * Math.PI * 2
+    const speed = (Math.random() * 0.5 + 0.5) * BASE_SPEED_BG
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: Math.cos(vel) * speed,
+      vy: Math.sin(vel) * speed,
+      baseRadius: 0.4 + Math.random() * 0.5,
+      baseAlpha: 0.28 + Math.random() * 0.18,   // dim — just fills gaps
+      hueOffset: (Math.random() - 0.5) * 0.14,
+      shimmerPhase: Math.random() * Math.PI * 2,
+      shimmerSpeed: 0.4 + Math.random() * 0.8,  // very slow shimmer
+      angle: Math.random() * Math.PI,
+    })
+  }
+  return particles
+}
+
+function initParticles2(width: number, height: number): Particle[] {
+  const particles: Particle[] = []
+  for (let i = 0; i < PARTICLE_COUNT_2; i++) {
+    const vel = Math.random() * Math.PI * 2
+    const speed = (Math.random() * 0.5 + 0.5) * BASE_SPEED_2
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: Math.cos(vel) * speed,
+      vy: Math.sin(vel) * speed,
+      baseRadius: 0.5 + Math.random() * 0.8,
+      baseAlpha: 0.65 + Math.random() * 0.25,
+      hueOffset: (Math.random() - 0.5) * 0.12,
+      shimmerPhase: Math.random() * Math.PI * 2,
+      shimmerSpeed: 0.6 + Math.random() * 1.4,
       angle: Math.random() * Math.PI,
     })
   }
@@ -123,6 +192,7 @@ export function MagneticGlitter() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mouseRef = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null)
   const trailRef = useRef<TrailPoint[]>([])
+  const parallaxRef = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -133,6 +203,8 @@ export function MagneticGlitter() {
     if (!container) return
 
     let particles: Particle[] = []
+    let particles2: Particle[] = []
+    let particlesBg: Particle[] = []
     let animId: number
     let lastTime = 0
 
@@ -146,7 +218,9 @@ export function MagneticGlitter() {
       if (canvas!.width !== w || canvas!.height !== h) {
         canvas!.width = w
         canvas!.height = h
+        particlesBg = initParticlesBg(w, h)
         particles = initParticles(w, h)
+        particles2 = initParticles2(w, h)
         offscreen = document.createElement('canvas')
         offscreen.width = w
         offscreen.height = h
@@ -176,6 +250,29 @@ export function MagneticGlitter() {
       const trail = trailRef.current
       const w = canvas!.width
       const h = canvas!.height
+
+      // --- Background layer: pure flow field, no magnetic response ---
+      // Slower, larger-scale swirls + phase offset so it never syncs with the mid/near layers
+      for (let i = 0; i < particlesBg.length; i++) {
+        const p = particlesBg[i]
+        const ffRaw =
+          FF_A * Math.sin(p.x * FF_F1 * 0.60 + t * FF_S1 * 0.65 + 3.71) * Math.cos(p.y * FF_F2 * 0.60 + t * FF_S2 * 0.65 + 3.71) +
+          FF_B * Math.sin(p.x * FF_F3 * 0.60 + t * FF_S3 * 0.65 + 3.71) * Math.cos(p.y * FF_F4 * 0.60 + t * FF_S4 * 0.65 + 3.71)
+        const ffAngle = ffRaw * FF_SCALE
+        p.vx += Math.cos(ffAngle) * 0.0008 * dtFactor
+        p.vy += Math.sin(ffAngle) * 0.0008 * dtFactor
+        p.angle += lineAngleDiff(ffAngle, p.angle) * 0.0008 * dtFactor
+        p.vx *= 0.96
+        p.vy *= 0.96
+        const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
+        if (spd > MAX_SPEED_BG) { p.vx *= MAX_SPEED_BG / spd; p.vy *= MAX_SPEED_BG / spd }
+        p.x += p.vx * dtFactor
+        p.y += p.vy * dtFactor
+        if (p.x < -2) p.x += w + 4
+        else if (p.x > w + 2) p.x -= w + 4
+        if (p.y < -2) p.y += h + 4
+        else if (p.y > h + 2) p.y -= h + 4
+      }
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]
@@ -239,6 +336,64 @@ export function MagneticGlitter() {
         if (p.y < -2) p.y += h + 4
         else if (p.y > h + 2) p.y -= h + 4
       }
+
+      // --- Layer 2: tighter, faster flow field + phase offset — visibly distinct from mid layer
+      for (let i = 0; i < particles2.length; i++) {
+        const p = particles2[i]
+
+        const ffRaw =
+          FF_A * Math.sin(p.x * FF_F1 * 1.30 + t * FF_S1 * 1.35 + 7.31) * Math.cos(p.y * FF_F2 * 1.30 + t * FF_S2 * 1.35 + 7.31) +
+          FF_B * Math.sin(p.x * FF_F3 * 1.30 + t * FF_S3 * 1.35 + 7.31) * Math.cos(p.y * FF_F4 * 1.30 + t * FF_S4 * 1.35 + 7.31)
+        const ffAngle = ffRaw * FF_SCALE
+        p.vx += Math.cos(ffAngle) * 0.0015 * dtFactor
+        p.vy += Math.sin(ffAngle) * 0.0015 * dtFactor
+        p.angle += lineAngleDiff(ffAngle, p.angle) * 0.0012 * dtFactor
+
+        if (mouse) {
+          const dnx = mouse.x - p.x
+          const dny = mouse.y - p.y
+          const rn = Math.sqrt(dnx * dnx + dny * dny) + 0.1
+
+          if (rn < ALIGN_RADIUS) {
+            const dsx = p.x - mouse.x
+            const dsy = p.y - (mouse.y + DIPOLE_OFFSET)
+            const rs = Math.sqrt(dsx * dsx + dsy * dsy) + 0.1
+            const cn = Math.max(rn, 10)
+            const cs = Math.max(rs, 10)
+            const Bx = dnx / (cn * cn) + dsx / (cs * cs) * 0.45
+            const By = dny / (cn * cn) + dsy / (cs * cs) * 0.45
+            const Bmag = Math.sqrt(Bx * Bx + By * By)
+
+            if (Bmag > 0.00001) {
+              const alignFalloff = Math.max(0, 1 - rn / ALIGN_RADIUS)
+              p.angle += lineAngleDiff(Math.atan2(By, Bx), p.angle) * ALIGN_STRENGTH_2 * alignFalloff * dtFactor
+              const moveFalloff = Math.max(0, 1 - rn / (MAGNETIC_RADIUS * 2.5))
+              if (moveFalloff > 0) {
+                p.vx += (Bx / Bmag) * moveFalloff * MAGNETIC_STRENGTH_2 * dtFactor
+                p.vy += (By / Bmag) * moveFalloff * MAGNETIC_STRENGTH_2 * dtFactor
+              }
+            }
+          }
+        }
+
+        p.vx *= DAMPING_2
+        p.vy *= DAMPING_2
+        const speed2 = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
+        if (speed2 > MAX_SPEED_2) { p.vx *= MAX_SPEED_2 / speed2; p.vy *= MAX_SPEED_2 / speed2 }
+        p.x += p.vx * dtFactor
+        p.y += p.vy * dtFactor
+        if (p.x < -2) p.x += w + 4
+        else if (p.x > w + 2) p.x -= w + 4
+        if (p.y < -2) p.y += h + 4
+        else if (p.y > h + 2) p.y -= h + 4
+      }
+
+      // Smoothly lerp parallax toward cursor (normalized -0.5..0.5 from canvas centre)
+      const par = parallaxRef.current
+      const targetPx = mouse ? (mouse.x / w - 0.5) : 0
+      const targetPy = mouse ? (mouse.y / h - 0.5) : 0
+      par.x += (targetPx - par.x) * 0.028 * dtFactor
+      par.y += (targetPy - par.y) * 0.028 * dtFactor
     }
 
     function render(t: number) {
@@ -246,26 +401,50 @@ export function MagneticGlitter() {
       const w = canvas!.width
       const h = canvas!.height
 
-      // --- Pass 1: particles to offscreen ---
-      offCtx.clearRect(0, 0, w, h)
-      offCtx.lineCap = 'round'
+      // Per-layer parallax offsets — bg moves least (far), layer2 moves most (near)
+      const par = parallaxRef.current
+      const bgOffX = par.x * 7,  bgOffY = par.y * 5
+      const midOffX = par.x * 20, midOffY = par.y * 13
+      const nearOffX = par.x * 36, nearOffY = par.y * 22
+      // Slowly orbiting specular light direction — shared across all passes
+      const lightAngle = t * 0.000022
 
-      // Specular highlight direction tracks the cursor; falls back to upper-right
+      // --- Pass 0: background fill layer — drawn first so it sits beneath everything ---
+      offCtx.clearRect(0, 0, w, h)
+      offCtx.save()
+      offCtx.translate(bgOffX, bgOffY)
+      const bgHoloSweep = t * HOLO_SWEEP_SPEED * 0.6 + 0.8
+
+      for (let i = 0; i < particlesBg.length; i++) {
+        const p = particlesBg[i]
+        const shimmer = 0.5 + 0.5 * Math.sin(t * 0.00008 * p.shimmerSpeed + p.shimmerPhase)
+        // Hue from flake orientation vs light — particles at same position but different angles get different colors
+        const facing = Math.cos(p.angle + Math.PI / 2 - lightAngle * 0.6)
+        const rawHue = ((facing * 0.38 + bgHoloSweep + p.hueOffset) % 1 + 1) % 1
+        const hue = i % 2 === 0 ? paletteHue(rawHue) : paletteHue2(rawHue) % 1
+        const specular = Math.max(0, facing) ** 3
+        const lightness = 30 + shimmer * 8 + specular * 22
+        const saturation = Math.max(52, 82 - specular * 25)
+        const r = p.baseRadius * (0.9 + shimmer * 0.2)
+        offCtx.fillStyle = `hsl(${hue}turn ${saturation}% ${lightness}%)`
+        offCtx.globalAlpha = p.baseAlpha * (0.28 + 0.45 * shimmer + 0.18 * specular)
+        offCtx.beginPath()
+        offCtx.arc(p.x, p.y, r, 0, Math.PI * 2)
+        offCtx.fill()
+      }
+      offCtx.globalAlpha = 1
+      offCtx.restore()
+
+      // --- Pass 1: particles to offscreen ---
+      offCtx.save()
+      offCtx.translate(midOffX, midOffY)
+
       const mouse = mouseRef.current
-      const mNorm = mouse
-        ? Math.sqrt((mouse.x / w - 0.5) ** 2 + (mouse.y / h - 0.5) ** 2) + 0.01
-        : 1
-      const catEyeLightX = mouse ? (mouse.x / w - 0.5) / mNorm : 0.707
-      const catEyeLightY = mouse ? (mouse.y / h - 0.5) / mNorm : -0.707
-      const holoAxis = t * HOLO_AXIS_SPEED
       const holoSweep = t * HOLO_SWEEP_SPEED
-      const warpAxis = holoAxis + Math.PI * 0.4
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]
 
-        // Cat-eye: bright zone radiates from cursor; particles perpendicular to cursor
-        // direction catch the most light (mimics magnetic platelet alignment under a magnet)
         let catEye = 0
         if (mouse) {
           const mdx = mouse.x - p.x
@@ -273,49 +452,71 @@ export function MagneticGlitter() {
           const mdist = Math.sqrt(mdx * mdx + mdy * mdy)
           const proximity = Math.max(0, 1 - mdist / 380) ** 2
           const perpFactor = 0.5 + 0.5 * Math.abs(Math.sin(p.angle - Math.atan2(mdy, mdx)))
-          catEye = proximity * perpFactor * 2.2
+          catEye = proximity * perpFactor * 2.5
         }
 
         const shimmer = 0.5 + 0.5 * Math.sin(t * 0.00014 * p.shimmerSpeed + p.shimmerPhase)
-        const brightness = shimmer + catEye
-        const alpha = Math.min(0.95, p.baseAlpha * Math.max(0.05, 0.35 + 0.65 * brightness))
 
-        const projPrimary = p.x * Math.cos(holoAxis) + p.y * Math.sin(holoAxis)
-        const projWarp = p.x * Math.cos(warpAxis) + p.y * Math.sin(warpAxis)
-        const proj = projPrimary + Math.sin(projWarp / (HOLO_BAND_PX * 1.4)) * HOLO_WARP
-        const rawHue = ((proj / HOLO_BAND_PX + holoSweep + p.hueOffset) % 1 + 1) % 1
+        // Hue from orientation vs light: same position, different angle = different color
+        const facing = Math.cos(p.angle + Math.PI / 2 - lightAngle)
+        const rawHue = ((facing * 0.45 + holoSweep + p.hueOffset) % 1 + 1) % 1
         const hue = paletteHue(rawHue)
-        const lightness = 50 + shimmer * 15 + catEye * 27
-        const saturation = Math.max(48, 88 - Math.max(0, lightness - 68) * 1.8)
 
-        const strokeHalf = p.baseRadius * (1.4 + Math.max(0, catEye) * 2.2 + shimmer * 0.6)
-        const strokeW = Math.max(0.3, p.baseRadius * (0.55 + 0.18 * shimmer))
-        const cosA = Math.cos(p.angle)
-        const sinA = Math.sin(p.angle)
+        const specular = Math.max(0, facing) ** 2.5
+        const brightness = shimmer * 0.3 + specular * 0.9 + catEye * 0.5
+        const lightness = Math.min(88, 36 + brightness * 44)
+        const saturation = Math.max(48, 95 - specular * 42)
+        const alpha = Math.min(0.95, p.baseAlpha * Math.max(0.06, 0.2 + 0.8 * (shimmer * 0.35 + specular * 0.5 + catEye * 0.25)))
 
-        offCtx.strokeStyle = `hsl(${hue}turn ${saturation}% ${lightness}%)`
+        const r = p.baseRadius * (1.0 + shimmer * 0.25 + catEye * 0.2)
+        offCtx.fillStyle = `hsl(${hue}turn ${saturation}% ${lightness}%)`
         offCtx.globalAlpha = alpha
-        offCtx.lineWidth = strokeW
         offCtx.beginPath()
-        offCtx.moveTo(p.x - cosA * strokeHalf, p.y - sinA * strokeHalf)
-        offCtx.lineTo(p.x + cosA * strokeHalf, p.y + sinA * strokeHalf)
-        offCtx.stroke()
-
-        const specStrength = shimmer * 0.3 + Math.max(0, catEye) * 1.1
-        if (specStrength > 0.06) {
-          offCtx.globalAlpha = Math.min(1, p.baseAlpha * specStrength * 1.3)
-          offCtx.strokeStyle = '#ffffff'
-          offCtx.lineWidth = Math.max(0.25, strokeW * 0.45)
-          const specHalf = strokeHalf * 0.45
-          const specOx = catEyeLightX * p.baseRadius * 0.3
-          const specOy = catEyeLightY * p.baseRadius * 0.3
-          offCtx.beginPath()
-          offCtx.moveTo(p.x + specOx - cosA * specHalf, p.y + specOy - sinA * specHalf)
-          offCtx.lineTo(p.x + specOx + cosA * specHalf, p.y + specOy + sinA * specHalf)
-          offCtx.stroke()
-        }
+        offCtx.arc(p.x, p.y, r, 0, Math.PI * 2)
+        offCtx.fill()
       }
       offCtx.globalAlpha = 1
+      offCtx.restore()
+
+      // --- Pass 1b: layer 2 particles — warm copper/rose palette, slower cursor response ---
+      offCtx.save()
+      offCtx.translate(nearOffX, nearOffY)
+      const holoSweep2 = t * HOLO_SWEEP_SPEED * 0.75 + 0.42
+
+      for (let i = 0; i < particles2.length; i++) {
+        const p = particles2[i]
+
+        let catEye2 = 0
+        if (mouse) {
+          const mdx = mouse.x - p.x
+          const mdy = mouse.y - p.y
+          const mdist = Math.sqrt(mdx * mdx + mdy * mdy)
+          const proximity = Math.max(0, 1 - mdist / 340) ** 2
+          const perpFactor = 0.5 + 0.5 * Math.abs(Math.sin(p.angle - Math.atan2(mdy, mdx)))
+          catEye2 = proximity * perpFactor * 2.0
+        }
+
+        const shimmer = 0.5 + 0.5 * Math.sin(t * 0.00014 * p.shimmerSpeed + p.shimmerPhase)
+
+        const facing = Math.cos(p.angle + Math.PI / 2 - lightAngle)
+        const rawHue2 = ((facing * 0.45 + holoSweep2 + p.hueOffset) % 1 + 1) % 1
+        const hue2 = paletteHue2(rawHue2) % 1
+
+        const specular = Math.max(0, facing) ** 2.5
+        const brightness = shimmer * 0.3 + specular * 0.9 + catEye2 * 0.45
+        const lightness2 = Math.min(88, 36 + brightness * 44)
+        const saturation2 = Math.max(48, 95 - specular * 42)
+        const alpha = Math.min(0.90, p.baseAlpha * Math.max(0.06, 0.2 + 0.8 * (shimmer * 0.35 + specular * 0.5 + catEye2 * 0.2)))
+
+        const r = p.baseRadius * (1.0 + shimmer * 0.25 + catEye2 * 0.2)
+        offCtx.fillStyle = `hsl(${hue2}turn ${saturation2}% ${lightness2}%)`
+        offCtx.globalAlpha = alpha
+        offCtx.beginPath()
+        offCtx.arc(p.x, p.y, r, 0, Math.PI * 2)
+        offCtx.fill()
+      }
+      offCtx.globalAlpha = 1
+      offCtx.restore()
 
       // --- Pass 2: clear-fluid refraction (tile-based, height-field gradient) ---
       // Each tile samples the particle layer displaced by (∂H/∂x, ∂H/∂y) * FLUID_REFRACT.
