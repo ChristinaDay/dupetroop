@@ -153,6 +153,10 @@
 }
 
 
+@utility touch-callout-none {
+  -webkit-touch-callout: none;
+}
+
 @utility no-scrollbar {
   &::-webkit-scrollbar {
     display: none;
