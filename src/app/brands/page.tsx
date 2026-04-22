@@ -31,7 +31,7 @@ export default async function BrandsPage() {
           >
             <div
               className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-black text-muted-foreground shrink-0 overflow-hidden border border-border/40"
-              style={{ background: 'white' }}
+              style={{ background: brand.logo_bg_color ?? 'white' }}
             >
               {brand.logo_url
                 ? <img src={brand.logo_url} alt={brand.name} className="h-8 w-8 object-contain" />

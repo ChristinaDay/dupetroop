@@ -62,7 +62,7 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
       <div className="flex items-start gap-5 mb-10">
         <div
           className="h-16 w-16 rounded-full flex items-center justify-center text-lg font-black text-muted-foreground shrink-0 overflow-hidden border border-border/40"
-          style={{ background: 'white' }}
+          style={{ background: brand.logo_bg_color ?? 'white' }}
         >
           {brand.logo_url
             ? <img src={brand.logo_url} alt={brand.name} className="h-12 w-12 object-contain" />
