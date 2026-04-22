@@ -29,7 +29,7 @@ export default function Icon() {
           }}
         >
           <span style={{ color: 'white' }}>D</span>
-          <span style={{ color: '#c0177a' }}>T</span>
+          <span style={{ color: '#e8359e' }}>T</span>
         </span>
       </div>
     ),
