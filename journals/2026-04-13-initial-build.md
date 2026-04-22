@@ -1197,7 +1197,34 @@ When the cursor leaves, each particle's angle slowly drifts back toward the loca
 - [ ] Email notifications when a submitted dupe/polish is approved or rejected
 - [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
 - [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
-- [ ] Merge `feat/magnetic-hero-bg` into main
+- [x] Merge `feat/magnetic-hero-bg` into main ✓ done — see Session 20
+
+---
+
+## Session 20 — April 21, 2026
+
+### What was completed
+
+#### Touch support for magnetic glitter hero
+
+Added mobile touch interaction to `MagneticGlitter.tsx` on a fork branch (`feat/magnetic-hero-touch`), then merged back into `feat/magnetic-hero-bg` and on to `main`.
+
+**Approach — scroll-and-play:** `touchmove` and `touchend` listeners on `window` with `passive: true`. This means swiping over the hero simultaneously drives the particle effect *and* scrolls the page — the interaction rewards curiosity without blocking navigation. A fast scroll-flick barely registers; a slow intentional swipe creates a visible magnetic response.
+
+**Implementation:** Extracted the mouse coordinate logic into a shared `setPointer(clientX, clientY)` helper used by both `onMouseMove` and `onTouchMove`. `onTouchEnd` clears `mouseRef` so particles settle naturally after lifting a finger — same behaviour as the cursor leaving the canvas on desktop.
+
+**Mobile UX fix — long-press selection:** On mobile, touching and holding the hero triggered the browser's native text-selection and iOS callout popout. Fixed with two targeted CSS properties scoped to below the `md` breakpoint:
+- `select-none` (Tailwind) — suppresses text selection on long-press
+- `-webkit-touch-callout: none` (custom `touch-callout-none` utility) — suppresses the iOS copy/look-up popout
+
+Desktop behavior unchanged (`md:select-auto` restores normal selection above the breakpoint). The `touch-callout-none` utility was added to `@utility` in `globals.css`.
+
+### Still to do (nice-to-haves)
+
+- [ ] Email notifications when a submitted dupe/polish is approved or rejected
+- [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
+- [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
+- [ ] Mobile performance tuning — reduce particle count on low-end devices if needed
 
 ---
 
