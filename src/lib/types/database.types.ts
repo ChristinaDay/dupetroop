@@ -21,6 +21,7 @@ export type Database = {
           description: string | null
           website_url: string | null
           logo_url: string | null
+          logo_bg_color: string | null
           is_indie: boolean
           country_of_origin: string | null
           price_tier: number | null
@@ -35,6 +36,7 @@ export type Database = {
           description?: string | null
           website_url?: string | null
           logo_url?: string | null
+          logo_bg_color?: string | null
           is_indie?: boolean
           country_of_origin?: string | null
           price_tier?: number | null
