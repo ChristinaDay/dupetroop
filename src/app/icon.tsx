@@ -28,8 +28,8 @@ export default function Icon() {
             display: 'flex',
           }}
         >
-          <span style={{ color: '#c0177a' }}>D</span>
-          <span style={{ color: 'white' }}>T</span>
+          <span style={{ color: 'white' }}>D</span>
+          <span style={{ color: '#c0177a' }}>T</span>
         </span>
       </div>
     ),
