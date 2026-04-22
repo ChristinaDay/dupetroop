@@ -1061,6 +1061,146 @@ Resolved a naming ambiguity that had accumulated over previous sessions. The wor
 
 ---
 
+## Session 18 — April 20, 2026
+
+### What was completed
+
+#### Interactive magnetic glitter hero background
+
+Built a fully custom Canvas 2D particle system for the hero section on branch `feat/magnetic-hero-bg`. No animation libraries — pure `requestAnimationFrame` with physics, rendering, and post-processing all in TypeScript.
+
+**New file: `src/components/hero/MagneticGlitter.tsx`**
+
+Wired into `src/app/page.tsx`: hero section gets `relative`, `<MagneticGlitter />` is the first child (behind content), and the content container gets `relative z-10` to ensure it sits above the canvas.
+
+##### Particle system
+
+- **2,500 particles** scattered uniformly at init, pre-sorted by color for render locality
+- Each particle: position, velocity, base radius (1–2.5px), base alpha (0.55–0.95), color from brand palette, independent shimmer phase + speed
+- **Color palette** weighted toward brand hues: fuchsia/magenta (~35%), cyan/teal (~30%), white/silver (~20%), electric yellow (~15%)
+- **dt-normalized physics** (`dtFactor = dt / 16.67`) — same perceived speed at 30fps and 120fps; dt capped at 50ms to suppress bursts after tab switch
+- **Edge wrapping** — particles that leave canvas bounds reappear from the opposite edge
+
+##### Physics: two-octave flow field
+
+Particles drift via a two-octave sine-wave superposition that approximates a 2D flow field without a noise library:
+
+```
+angleRaw = FF_A * sin(x*FF_F1 + t*FF_S1) * cos(y*FF_F2 + t*FF_S2)
+         + FF_B * sin(x*FF_F3 + t*FF_S3) * cos(y*FF_F4 + t*FF_S4)
+angle = angleRaw * π / (FF_A + FF_B)
+```
+
+Gives organic, non-repeating curved drift. Velocity damped at 0.92/frame and capped at 3.5px/frame.
+
+##### Physics: magnetic cursor attraction
+
+Mouse position tracked via `window.addEventListener('mousemove', ..., { passive: true })`, mapped to canvas space via `getBoundingClientRect`. Magnetic force uses `(1 - dist/180)^1.5` falloff — gentle at the boundary, strong up close:
+
+```
+force = (1 - dist / 180)^1.5 * 0.18 * dtFactor
+vx += (dx / dist) * force
+```
+
+Default mouse position `(-9999, -9999)` means force never fires on mobile — organic drift only, no special case needed.
+
+##### Rendering: three-layer visual system
+
+Each frame renders in two passes via an offscreen canvas:
+
+**Pass 1 — particles to offscreen canvas:**
+
+1. **Caustic ripple modulation** — three overlapping sine waves at different spatial frequencies and speeds create moving pools of brightness across the field, like light refracting through a shifting fluid surface. Modulates both base particle alpha and specular intensity.
+   ```
+   causticRaw = sin(x*0.018 + t*0.0009) * cos(y*0.016 + t*0.00075) * 0.55
+              + sin((x*0.7 + y*0.9)*0.024 + t*0.0012) * 0.30
+              + cos((x*0.5 - y*0.8)*0.030 + t*0.00088) * 0.15
+   caustic = max(0, 0.5 + causticRaw * 0.5)
+   ```
+
+2. **Base particle** — filled circle, alpha = `baseAlpha * (0.25 + 0.75 * caustic)`. Dims in caustic shadow zones, brightens in lit zones.
+
+3. **Directional specular highlight** — small white dot offset toward a slowly orbiting parallel light source (one rotation ~35s). Blooms hard in bright caustic zones: `alpha * specShimmer * caustic * 1.3`. All highlights point the same direction — the key visual cue for a unified reflective surface.
+
+4. **Per-particle shimmer** — `shimmer = 0.5 + 0.5 * sin(t * 0.001 * shimmerSpeed + shimmerPhase)`. Modulates both radius and alpha independently per particle, simulating glitter catching light at different angles.
+
+**Pass 2 — 2D lens displacement to main canvas:**
+
+Copies offscreen → main canvas in 12×12px tiles, each tile displaced by `(dx, dy)` derived from the gradient of a height field. Gradient-of-height-field displacement naturally creates convergent and divergent zones — the physics of how a curved refractive surface bends light. Low spatial frequencies (0.010–0.014 cycles/px) keep adjacent tile displacements within ~1px of each other, eliminating visible seaming. Slow time coefficients (0.00028–0.00038) give unhurried, viscous motion.
+
+```
+dx = SCALE * (cos(tx*0.014 + ty*0.011 + t*0.00032) * cos(ty*0.013 + t*0.00028) * 0.65
+            + cos((tx*0.6 + ty*0.8)*0.010 + t*0.00038) * 0.35)
+dy = SCALE * (sin(...same...) * 0.65 + sin(...) * 0.35)
+```
+
+SCALE = 9px max displacement. At a ~1400×500 hero, this is ~4,900 `drawImage` calls per frame — fast enough to stay well within 60fps budget.
+
+##### Infrastructure
+
+- `ResizeObserver` on the hero section resizes both canvases and re-initializes particles when dimensions change
+- Canvas: `pointer-events-none absolute inset-0 w-full h-full` — fully click-through
+- `aria-hidden="true"` — decorative, not in accessibility tree
+- Zero React state — entire animation loop runs in refs, no re-renders after mount
+
+##### What was tried and reverted
+
+- **Trail fade + glow halos** (`destination-out` + double-circle render): created a viscous trail effect but the glow halos looked like uniformly glowing orbs with no sense of light directionality — reverted in favor of the specular dot approach.
+- **Horizontal scanline displacement only**: produced a wavy appearance but no convergence/divergence (no actual lensing) — replaced with the 2D tile grid approach.
+
+### Still to do (nice-to-haves)
+
+- [ ] Email notifications when a submitted dupe/polish is approved or rejected
+- [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
+- [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
+- [ ] Commit + merge `feat/magnetic-hero-bg` once visual polish is complete
+
+---
+
+## Session 19 — April 20, 2026
+
+### What was completed
+
+#### Magnetic flake orientation — cursor as wand
+
+Rewrote the particle rendering and physics in `MagneticGlitter.tsx` so the cursor behaves like a magnetic wand held over wet polish.
+
+**The core insight:** Real magnetic polish particles are metallic platelets that *rotate* to align with the field — they don't just drift toward the magnet. That orientation change is the visual signature of the effect. The previous implementation only moved particles; this one also orients them.
+
+**Particle rendering: circles → oriented strokes**
+
+Each particle is now drawn as a short line segment at its `angle` rather than a filled circle. This simulates the elongated flake shape of magnetic polish particles. Stroke length grows in the cat-eye band (`catEye * 3.5` multiplier), mimicking flakes "standing up" taller when the magnet is directly overhead. A shorter white specular stroke overlays each flake, offset toward the light source.
+
+**`angle` property + `lineAngleDiff()` helper**
+
+Each particle carries an `angle` that updates independently from its position. The `lineAngleDiff` helper handles the π-symmetry of lines correctly — a line at 0° and 180° are identical, so rotation always takes the shortest path:
+
+```
+da = da - π * round(da / π)    // maps to [-π/2, π/2]
+```
+
+**Two-radius system**
+
+`ALIGN_RADIUS = 280px` controls orientation; `MAGNETIC_RADIUS = 130px` controls position force. Particles visibly rotate into arching field lines *before* they start moving toward the wand tip — the pattern forms as the cursor approaches, not only when it's directly overhead. This mirrors the real experience of watching cat-eye polish respond as you bring a magnet close.
+
+**Resting-state relaxation**
+
+When the cursor leaves, each particle's angle slowly drifts back toward the local flow field direction rather than freezing in place. Gives the surface a "settling" quality after the wand passes.
+
+**Constants tuned:**
+- `MAGNETIC_STRENGTH`: 0.08 → 0.10
+- `MAX_SPEED`: 0.7 → 1.2 (allows faster gliding along field lines)
+- Removed unused constants (`MAGNETIC_POWER`, `DRAG_RADIUS`, `DRAG_STRENGTH`, `VORTEX_AMP`) — defined in previous sessions but never applied
+
+### Still to do (nice-to-haves)
+
+- [ ] Email notifications when a submitted dupe/polish is approved or rejected
+- [ ] Admin brand sync tool — trigger per-brand catalog re-import from admin UI
+- [ ] Nested stash groups (user-defined subgroups within Owned/Wishlist/Bookmarked)
+- [ ] Merge `feat/magnetic-hero-bg` into main
+
+---
+
 ## How to Run Locally
 
 ```bash
@@ -1090,6 +1230,7 @@ DupeTroop/
 │   ├── components/
 │   │   ├── admin/
 │   │   ├── dupe/
+│   │   ├── hero/                    ← MagneticGlitter canvas particle system
 │   │   ├── layout/
 │   │   ├── opinion/
 │   │   ├── polish/

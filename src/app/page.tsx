@@ -11,6 +11,7 @@ import { getUserStashMap } from '@/lib/queries/stash'
 import { createClient } from '@/lib/supabase/server'
 import type { StashStatus } from '@/lib/types/app.types'
 import { HeroSearch } from '@/components/search/HeroSearch'
+import { MagneticGlitter } from '@/components/hero/MagneticGlitter'
 
 
 export default async function HomePage() {
@@ -28,8 +29,9 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="border-b border-border hero-bg overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+      <section className="relative border-b border-border hero-bg overflow-hidden">
+        <MagneticGlitter />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-14">
           <div className="flex flex-col gap-5">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
               Nail polish dupe tracker
