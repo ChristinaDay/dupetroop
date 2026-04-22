@@ -34,7 +34,7 @@ export default async function HomePage() {
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-14">
           <div className="flex flex-col gap-5">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
-              Nail polish dupe tracker
+              Nail polish & dupe tracker
             </p>
             <h1 className="font-display font-black uppercase leading-[0.88] tracking-tight text-[clamp(3.5rem,12vw,9rem)]">
               Find your<br />
