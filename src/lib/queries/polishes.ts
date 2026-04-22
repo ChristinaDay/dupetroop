@@ -4,7 +4,8 @@ import type { PolishWithBrand, FeaturedPolish, PolishFilters } from '@/lib/types
 const POLISH_SELECT = `
   *,
   brand:brands(*),
-  collection:collections(*)
+  collection:collections(*),
+  tags:polish_tags(tag:tags(slug, name))
 `
 
 const PAGE_SIZE = 24

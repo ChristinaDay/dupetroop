@@ -35,8 +35,13 @@ export function PolishCard({ polish, showDupeCount = false }: PolishCardProps) {
         )}
 
         {/* Status badges */}
-        {(polish.is_limited || polish.is_discontinued) && (
+        {(polish.is_limited || polish.is_discontinued || polish.tags?.some(t => t.tag.slug === 'fan-favorite')) && (
           <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {polish.tags?.some(t => t.tag.slug === 'fan-favorite') && (
+              <span className="rounded-full bg-primary/90 text-primary-foreground text-[10px] font-bold px-2 py-0.5 backdrop-blur-sm">
+                Fan Fave ★
+              </span>
+            )}
             {polish.is_limited && (
               <span className="rounded-full bg-amber-500/90 text-white text-[10px] font-bold px-2 py-0.5 backdrop-blur-sm">
                 LE

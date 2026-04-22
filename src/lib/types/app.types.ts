@@ -22,6 +22,7 @@ export type UserRole = Enums['user_role']
 export type PolishWithBrand = Polish & {
   brand: Brand
   collection: Collection | null
+  tags?: { tag: { slug: string; name: string } }[]
 }
 
 export type FeaturedSourceType = 'reddit' | 'instagram' | 'tiktok' | 'admin'
