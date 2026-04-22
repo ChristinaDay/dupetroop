@@ -11,7 +11,7 @@ export default function Icon() {
           width: 32,
           height: 32,
           borderRadius: 8,
-          background: '#c0177a',
+          background: '#000',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -22,12 +22,13 @@ export default function Icon() {
             fontFamily: 'sans-serif',
             fontWeight: 900,
             fontSize: 18,
-            color: 'white',
             letterSpacing: '-1px',
             lineHeight: 1,
+            display: 'flex',
           }}
         >
-          DT
+          <span style={{ color: '#c0177a' }}>D</span>
+          <span style={{ color: 'white' }}>T</span>
         </span>
       </div>
     ),
