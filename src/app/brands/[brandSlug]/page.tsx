@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getBrandBySlug } from '@/lib/queries/brands'
 import { getPolishes } from '@/lib/queries/polishes'
 import { getUserStashMap } from '@/lib/queries/stash'
@@ -12,8 +12,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { StashStatus } from '@/lib/types/app.types'
 
+const PAGE_SIZE = 24
+
 interface PageProps {
   params: Promise<{ brandSlug: string }>
+  searchParams: Promise<{ page?: string }>
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -26,18 +29,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function BrandPage({ params }: PageProps) {
+export default async function BrandPage({ params, searchParams }: PageProps) {
   const { brandSlug } = await params
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? '1') || 1)
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const [brand, { polishes, total }, stashMap] = await Promise.all([
     getBrandBySlug(brandSlug),
-    getPolishes({ brand: brandSlug }),
+    getPolishes({ brand: brandSlug, page }),
     user ? getUserStashMap(user.id) : Promise.resolve({} as Record<string, { id: string; status: StashStatus }>),
   ])
 
   if (!brand) notFound()
+
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  const hasPrev = page > 1
+  const hasNext = page < totalPages
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
@@ -78,6 +88,9 @@ export default async function BrandPage({ params }: PageProps) {
 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-black">{total} polishes</h2>
+        {totalPages > 1 && (
+          <p className="text-sm text-muted-foreground">Page {page} of {totalPages}</p>
+        )}
       </div>
 
       {polishes.length > 0 ? (
@@ -98,6 +111,24 @@ export default async function BrandPage({ params }: PageProps) {
         </div>
       ) : (
         <p className="text-muted-foreground">No polishes added yet for this brand.</p>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-10">
+          <Button asChild variant="outline" size="sm" disabled={!hasPrev}>
+            <Link href={`/brands/${brandSlug}?page=${page - 1}`} aria-disabled={!hasPrev}>
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Link>
+          </Button>
+          <span className="text-sm text-muted-foreground px-2">{page} / {totalPages}</span>
+          <Button asChild variant="outline" size="sm" disabled={!hasNext}>
+            <Link href={`/brands/${brandSlug}?page=${page + 1}`} aria-disabled={!hasNext}>
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       )}
     </div>
   )
