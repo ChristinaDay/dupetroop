@@ -228,10 +228,10 @@ export function MagneticGlitter() {
       }
     }
 
-    function onMouseMove(e: MouseEvent) {
+    function setPointer(clientX: number, clientY: number) {
       const rect = canvas!.getBoundingClientRect()
-      const nx = e.clientX - rect.left
-      const ny = e.clientY - rect.top
+      const nx = clientX - rect.left
+      const ny = clientY - rect.top
       const prev = mouseRef.current
       const vx = prev ? nx - prev.x : 0
       const vy = prev ? ny - prev.y : 0
@@ -242,6 +242,19 @@ export function MagneticGlitter() {
       if (!trail.length || now - trail[trail.length - 1].t > 20) {
         trail.push({ x: nx, y: ny, vx, vy, t: now })
       }
+    }
+
+    function onMouseMove(e: MouseEvent) {
+      setPointer(e.clientX, e.clientY)
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      const t = e.touches[0]
+      if (t) setPointer(t.clientX, t.clientY)
+    }
+
+    function onTouchEnd() {
+      mouseRef.current = null
     }
 
     function update(t: number, dt: number) {
@@ -647,12 +660,16 @@ export function MagneticGlitter() {
     ro.observe(container)
     setSize()
     window.addEventListener('mousemove', onMouseMove, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
     animId = requestAnimationFrame(tick)
 
     return () => {
       cancelAnimationFrame(animId)
       ro.disconnect()
       window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
     }
   }, [])
 
