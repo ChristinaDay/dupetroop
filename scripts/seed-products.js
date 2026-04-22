@@ -161,9 +161,10 @@ async function fetchShopifyAllProducts(domain, collection = 'all') {
   return results
 }
 
-function shopifyProductToPolish(product, brandId, msrp) {
+function shopifyProductToPolish(product, brandId, fallbackMsrp) {
   const { finish, hex, colorFamily, isLimited } = parseTags(product.tags)
   const image = product.images?.[0]?.src ?? null
+  const price = parseFloat(product.variants?.[0]?.price)
   const record = {
     brand_id:        brandId,
     name:            product.title,
@@ -171,7 +172,7 @@ function shopifyProductToPolish(product, brandId, msrp) {
     hex_color:       hex,
     finish_category: finish,
     color_family:    colorFamily,
-    msrp_usd:        msrp,
+    msrp_usd:        (!isNaN(price) && price > 0) ? price : fallbackMsrp,
     is_verified:     true,
     is_limited:      isLimited,
   }
@@ -652,8 +653,8 @@ async function run() {
   if (should('mooncat')) {
     process.stdout.write('Fetching Mooncat (full catalog)... ')
     try {
-      const products = await fetchShopifyAllProducts('mooncat.com')
-      const polishes = products.map(p => shopifyProductToPolish(p, brandId['mooncat'], 12))
+      const products = await fetchShopifyAllProducts('mooncat.com', 'everything')
+      const polishes = products.map(p => shopifyProductToPolish(p, brandId['mooncat'], 17))
       console.log(`${polishes.length} polishes`)
       if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
       else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} ${p.name}`))
