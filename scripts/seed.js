@@ -40,7 +40,7 @@ const brands = [
 function getPolishes(brandMap) {
   return [
     // Mooncat — Bloodbender is the canonical example; full catalog covered by seed-products.js
-    { brand_id: brandMap['mooncat'], name: 'Bloodbender', slug: 'bloodbender', hex_color: '#8B1A2B', finish_category: 'multichrome', color_family: 'red', hex_secondary: '#4B0082', msrp_usd: 12, is_verified: true },
+    { brand_id: brandMap['mooncat'], name: 'Bloodbender', slug: 'bloodbender', hex_color: '#8B1A2B', finish_category: 'magnetic', color_family: 'red', hex_secondary: '#4B0082', msrp_usd: 12, is_verified: true },
 
     // OPI
     { brand_id: brandMap['opi'], name: 'Lincoln Park After Dark', slug: 'lincoln-park-after-dark', hex_color: '#2D1A3A', finish_category: 'cream', color_family: 'purple', msrp_usd: 11, is_verified: true },
@@ -95,10 +95,6 @@ const dupePairs = [
   // Sheer whites
   { a: 'blanc', b: 'funny-bunny', notes: "Both are the go-to sheer white 'clean nail' polishes. Funny Bunny is slightly sheerer and cooler-toned; Blanc has a faint warm cast. Recommended interchangeably across nail communities." },
 
-  // Bloodbender chain — the canonical DupeTroop example
-  // House of Hades (Mooncat) is the base coat in the Bloodbender recipe;
-  // Casa de Heaven is widely considered a better formula at a lower price point.
-  { a: 'house-of-hades', b: 'casa-de-heaven', notes: 'Casa de Heaven (Uno Mas Colors) is a near-perfect dupe for House of Hades — smoother formula, lower price. Both are deep navy-blue cremes used as the base in magnetic layering looks.' },
 ]
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
