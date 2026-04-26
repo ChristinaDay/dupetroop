@@ -418,4 +418,5 @@ INSERT INTO tags (name, slug) VALUES
   ('Indie Brand', 'indie-brand'),
   ('Limited Edition', 'limited-edition'),
   ('Fan Favorite', 'fan-favorite'),
-  ('Discontinued', 'discontinued');
+  ('Discontinued', 'discontinued'),
+  ('Topper', 'topper');
