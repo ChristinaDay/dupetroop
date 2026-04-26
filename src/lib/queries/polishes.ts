@@ -63,7 +63,10 @@ export async function getPolishes(filters: PolishFilters = {}): Promise<{
   query = query.range(from, to)
 
   const { data, count, error } = await query
-  if (error) throw error
+  if (error) {
+    console.error('getPolishes error:', error)
+    return { polishes: [], total: 0 }
+  }
 
   return {
     polishes: (data as unknown as PolishWithBrand[]) ?? [],

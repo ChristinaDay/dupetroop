@@ -9,7 +9,10 @@ export async function getBrands(): Promise<Brand[]> {
     .eq('is_active', true)
     .order('name')
 
-  if (error) throw error
+  if (error) {
+    console.error('getBrands error:', error)
+    return []
+  }
   return data
 }
 

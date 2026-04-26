@@ -20,7 +20,10 @@ export async function getUserStashSummary(userId: string): Promise<StashSummary>
     .order('is_favorite', { ascending: false })
     .order('created_at', { ascending: false })
 
-  if (error) throw error
+  if (error) {
+    console.error('getUserStashSummary error:', error)
+    return { owned: { items: [], value: 0, unknownCount: 0 }, wishlist: { items: [], value: 0, unknownCount: 0 }, bookmarked: { items: [], value: 0, unknownCount: 0 }, destashed: { items: [], value: 0, unknownCount: 0 } }
+  }
 
   const all = (data ?? []) as unknown as StashItemWithPolish[]
 
@@ -59,7 +62,10 @@ export async function getUserStash(
     .order('is_favorite', { ascending: false })
     .order('created_at', { ascending: false })
 
-  if (error) throw error
+  if (error) {
+    console.error('getUserStash error:', error)
+    return { items: [], total: 0 }
+  }
 
   return {
     items: (data ?? []) as unknown as StashItemWithPolish[],
@@ -81,7 +87,10 @@ export async function getUserStashMap(
     .select('id, polish_id, status')
     .eq('user_id', userId)
 
-  if (error) throw error
+  if (error) {
+    console.error('getUserStashMap error:', error)
+    return {}
+  }
 
   const map: Record<string, { id: string; status: StashStatus }> = {}
   for (const row of data ?? []) {
@@ -102,7 +111,10 @@ export async function getStashedPolishIds(userId: string): Promise<Set<string>> 
     .select('polish_id')
     .eq('user_id', userId)
 
-  if (error) throw error
+  if (error) {
+    console.error('getStashedPolishIds error:', error)
+    return new Set()
+  }
 
   return new Set((data ?? []).map((row: { polish_id: string }) => row.polish_id))
 }

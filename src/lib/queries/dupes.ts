@@ -42,7 +42,10 @@ export async function getDupes(filters: DupeFilters = {}): Promise<{
   query = query.range(from, to)
 
   const { data, count, error } = await query
-  if (error) throw error
+  if (error) {
+    console.error('getDupes error:', error)
+    return { dupes: [], total: 0 }
+  }
 
   const dupes = ((data as unknown as DupeWithPolishes[]) ?? [])
   return {
