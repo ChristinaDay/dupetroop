@@ -302,36 +302,47 @@ function SubmitDupeForm() {
         {/* Step 3 — review & submit */}
         {step === 3 && (
           <div className="space-y-4">
-            <div className="border border-border rounded-xl p-4 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Summary</p>
-              {polishA && (
-                <div className="flex items-center gap-2">
-                  <PolishSwatch hexColor={polishA.hex_color} imageUrl={polishA.images?.[0] ?? null} size="sm" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">{polishA.brand.name}</p>
-                    <p className="text-sm font-bold">{polishA.name}</p>
+            <div className="border border-border rounded-xl overflow-hidden">
+              {/* Original */}
+              <div className="px-4 pt-4 pb-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Original</p>
+                {polishA && (
+                  <div className="flex items-center gap-3">
+                    <PolishSwatch hexColor={polishA.hex_color} hexSecondary={polishA.hex_secondary} imageUrl={polishA.images?.[0] ?? null} size="sm" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">{polishA.brand.name}</p>
+                      <p className="text-sm font-bold">{polishA.name}</p>
+                    </div>
                   </div>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
-                <Check className="h-3.5 w-3.5 text-primary" />
-                duped by
+                )}
               </div>
-              {components.map((comp, idx) => (
-                <div key={comp.polish.id} className="flex items-center gap-2">
-                  {idx > 0 && <span className="text-xs font-bold text-muted-foreground ml-6">+</span>}
-                  <PolishSwatch hexColor={comp.polish.hex_color} imageUrl={comp.polish.images?.[0] ?? null} size="sm" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">{comp.polish.brand.name}</p>
-                    <p className="text-sm font-bold">{comp.polish.name}</p>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 px-4 py-2 bg-muted/40 border-y border-border">
+                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                <p className="text-xs font-semibold text-muted-foreground">duped by</p>
+              </div>
+
+              {/* Components — equal hierarchy */}
+              <div className="px-4 pt-3 pb-4 space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  {components.length === 1 ? 'Dupe' : 'Combination'}
+                </p>
+                {components.map(comp => (
+                  <div key={comp.polish.id} className="flex items-center gap-3">
+                    <PolishSwatch hexColor={comp.polish.hex_color} hexSecondary={comp.polish.hex_secondary} imageUrl={comp.polish.images?.[0] ?? null} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">{comp.polish.brand.name}</p>
+                      <p className="text-sm font-bold">{comp.polish.name}</p>
+                    </div>
                     {components.length >= 2 && (
-                      <p className="text-[10px] text-muted-foreground capitalize">
+                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
                         {ROLE_OPTIONS.find(o => o.value === comp.role)?.label}
-                      </p>
+                      </span>
                     )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             <div>
