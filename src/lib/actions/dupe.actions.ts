@@ -8,12 +8,20 @@ export async function submitDupe(formData: {
   polishBId: string
   notes?: string
 }): Promise<{ dupeId: string } | { error: string }> {
+  // Auth check with regular client
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'You must be logged in to submit a dupe.' }
 
-  const { data, error } = await supabase
+  // Use admin client for the write so the post-insert SELECT isn't blocked by
+  // the dupes_select RLS policy (which only surfaces approved rows or the
+  // submitter's own rows — and the submitter check can fail if the JWT isn't
+  // forwarded correctly to PostgREST).
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = admin as any
+
+  const { data, error } = await db
     .from('dupes')
     .insert({
       polish_a_id: formData.polishAId,
@@ -31,6 +39,8 @@ export async function submitDupe(formData: {
     }
     return { error: error.message }
   }
+
+  if (!data) return { error: 'Failed to save dupe. Please try again.' }
 
   revalidatePath('/admin/dupes')
   return { dupeId: data.id }

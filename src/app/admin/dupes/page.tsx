@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { getPendingDupes } from '@/lib/queries/dupes'
+
+export const dynamic = 'force-dynamic'
 import { AdminDupeList } from '@/components/admin/AdminDupeList'
 import { Button } from '@/components/ui/button'
 
