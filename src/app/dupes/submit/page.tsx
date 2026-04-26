@@ -137,34 +137,38 @@ export default function SubmitDupePage() {
   const handleSubmit = () => {
     if (!polishA || components.length === 0) return
     startTransition(async () => {
-      if (components.length === 1) {
-        const result = await submitDupe({
-          polishAId: polishA.id,
-          polishBId: components[0].polish.id,
-          notes: notes.trim() || undefined,
-        })
-        if ('error' in result) {
-          toast.error(result.error)
+      try {
+        if (components.length === 1) {
+          const result = await submitDupe({
+            polishAId: polishA.id,
+            polishBId: components[0].polish.id,
+            notes: notes.trim() || undefined,
+          })
+          if ('error' in result) {
+            toast.error(result.error)
+          } else {
+            toast.success('Dupe submitted! It will appear after review.')
+            router.push('/dupes')
+          }
         } else {
-          toast.success('Dupe submitted! It will appear after review.')
-          router.push('/dupes')
+          const result = await submitLookAsDupe({
+            target_polish_id: polishA.id,
+            notes: notes.trim() || undefined,
+            components: components.map((c, i) => ({
+              polish_id: c.polish.id,
+              step_order: i + 1,
+              role: c.role,
+            })),
+          })
+          if ('error' in result) {
+            toast.error(result.error)
+          } else {
+            toast.success('Combination dupe submitted! It will appear after review.')
+            router.push('/dupes')
+          }
         }
-      } else {
-        const result = await submitLookAsDupe({
-          target_polish_id: polishA.id,
-          notes: notes.trim() || undefined,
-          components: components.map((c, i) => ({
-            polish_id: c.polish.id,
-            step_order: i + 1,
-            role: c.role,
-          })),
-        })
-        if ('error' in result) {
-          toast.error(result.error)
-        } else {
-          toast.success('Combination dupe submitted! It will appear after review.')
-          router.push('/dupes')
-        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       }
     })
   }
