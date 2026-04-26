@@ -38,6 +38,8 @@ const brands = [
   { name: 'Kitti Nails', slug: 'kitti-nails', website_url: 'https://www.kittinails.com', is_indie: true, price_tier: 3, country_of_origin: 'Australia' },
   // UK
   { name: 'Barry M', slug: 'barry-m', website_url: 'https://www.barrym.com', is_indie: false, price_tier: 2, country_of_origin: 'United Kingdom' },
+  // South San Francisco, CA
+  { name: "What's Up Nails", slug: 'whats-up-nails', website_url: 'https://www.whatsupnails.com', is_indie: true, price_tier: 3, country_of_origin: 'United States' },
 ]
 
 // ─── POLISHES ─────────────────────────────────────────────────────────────────

@@ -267,6 +267,9 @@ const BRAND_CONFIG = {
   'essie':       { strategy: 'manual', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Essie_logo.svg/320px-Essie_logo.svg.png' },
   'sally-hansen':{ strategy: 'manual', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Sally_Hansen_logo.svg/320px-Sally_Hansen_logo.svg.png' },
 
+  // South San Francisco, CA
+  'whats-up-nails': { strategy: 'manual', logoUrl: 'https://cdn.shopify.com/s/files/1/0654/9675/files/rose-gold-logo.png?v=1700696959&width=600' },
+
   // Australia
   'emily-de-molly': { domain: 'www.emilydemolly.com', strategy: 'html' },
   'kitti-nails':    { strategy: 'manual', logoUrl: 'https://www.kittinails.com/cdn/shop/files/Transfer_sticker_3_x_3_cm_3_d9c98a83-866b-4beb-9787-20d14bdf2599.png?v=1750732079&width=600' },

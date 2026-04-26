@@ -1464,6 +1464,97 @@ async function run() {
     } catch (e) { console.error('\n  Error:', e.message) }
   }
 
+  // ── What's Up Nails (retailer collection on whatsupbeauty.com) ───────────────
+  // Products are listed under the vendor "Whats Up Nails" with Type_ / Color_ tags.
+  // Titles have a "Whats Up Nails - " prefix that we strip.
+  // Collection bundles (multiple bottles, high price) are filtered out.
+  if (should('whats-up-nails')) {
+    process.stdout.write("Fetching What's Up Nails (whatsupbeauty.com collection)... ")
+    try {
+      const WUN_FINISH_MAP = {
+        'Magnetic':          'magnetic',
+        'Multichrome':       'multichrome',
+        'Duochrome':         'duochrome',
+        'Holographic':       'holo',
+        'Flash Reflective':  'holo',
+        'Chrome':            'multichrome',
+        'Flakies':           'flakies',
+        'Glitter':           'glitter',
+        'Shimmer':           'shimmer',
+        'Metallic':          'shimmer',
+        'Foil':              'shimmer',
+        'Jelly':             'jelly',
+        'Crelly':            'jelly',
+        'Creme':             'cream',
+        'Matte':             'matte',
+        'Top Coat':          'topper',
+        'Stamping':          'topper',
+        'Thermal':           'other',
+        'Gem Encrusted':     'other',
+      }
+      const WUN_COLOR_MAP = {
+        'Red': 'red', 'Orange': 'orange', 'Yellow': 'yellow', 'Gold': 'yellow',
+        'Green': 'green', 'Blue': 'blue', 'Purple': 'purple', 'Pink': 'pink',
+        'Brown': 'neutral', 'Nude': 'neutral', 'Gray': 'neutral', 'Silver': 'neutral',
+        'White': 'neutral', 'Black': 'black',
+      }
+      const FINISH_ORDER = [
+        'Magnetic', 'Multichrome', 'Duochrome', 'Holographic', 'Flash Reflective',
+        'Chrome', 'Flakies', 'Glitter', 'Shimmer', 'Metallic', 'Foil',
+        'Jelly', 'Crelly', 'Creme', 'Matte', 'Top Coat', 'Stamping', 'Thermal', 'Gem Encrusted',
+      ]
+
+      const allProducts = await fetchShopifyAllProducts('whatsupbeauty.com', 'whats-up-nails')
+      const products = allProducts.filter(p => {
+        if (p.vendor !== 'Whats Up Nails') return false
+        if (p.product_type !== 'Nail Polish') return false
+        const price = parseFloat(p.variants?.[0]?.price ?? '0')
+        if (price > 25) return false // filter collection bundles
+        return true
+      })
+
+      const polishes = products.map(p => {
+        const tags = p.tags ?? []
+        const typeTags = tags.filter(t => t.startsWith('Type_')).map(t => t.replace('Type_', ''))
+        const colorTag = tags.find(t => t.startsWith('Color_'))?.replace('Color_', '') ?? null
+
+        let finish = 'other'
+        for (const f of FINISH_ORDER) {
+          if (typeTags.includes(f)) { finish = WUN_FINISH_MAP[f] ?? 'other'; break }
+        }
+        if (finish === 'other') finish = finishFromName(p.title)
+
+        const colorFamily = colorTag ? (WUN_COLOR_MAP[colorTag] ?? 'neutral') : 'neutral'
+        const hex = COLOR_HEX_MAP[colorFamily.toLowerCase()] ?? '#888888'
+
+        // Strip "Whats Up Nails - " prefix from title
+        const name = p.title.replace(/^Whats Up Nails\s*-\s*/i, '')
+        const slug = slugify(name)
+        const price = parseFloat(p.variants?.[0]?.price ?? '12.75')
+        const image = p.images?.[0]?.src ?? null
+
+        const record = {
+          brand_id:        brandId['whats-up-nails'],
+          name,
+          slug,
+          hex_color:       hex,
+          finish_category: finish,
+          color_family:    colorFamily,
+          msrp_usd:        (!isNaN(price) && price > 0) ? price : 12.75,
+          product_url:     `https://www.whatsupnails.com/products/${p.handle}`,
+          is_verified:     true,
+          is_limited:      false,
+        }
+        if (image) record.images = [image]
+        return record
+      })
+
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} $${p.msrp_usd}  ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
   if (!DRY_RUN) {
     console.log(`\n✓ Total upserted: ${totalUpserted}`)
   }
