@@ -38,7 +38,7 @@ export default function LoginPage() {
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2 font-black text-xl mb-6">
             <Sparkles className="h-5 w-5 text-primary" />
-            Dupe<span className="text-primary">Troop</span>
+            Doop<span className="text-primary">Troop</span>
           </Link>
           <h1 className="text-2xl font-black">Welcome back</h1>
           <p className="text-muted-foreground text-sm mt-1">Log in to rate dupes and submit new ones.</p>

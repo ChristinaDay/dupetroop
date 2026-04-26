@@ -3,7 +3,6 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/lib/types/database.types'
 
-/** Service-role client — bypasses RLS. Only use after verifying the caller is admin. */
 export function createAdminClient() {
   return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,7 +27,6 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // setAll called from a Server Component — cookies are read-only
           }
         },
       },
