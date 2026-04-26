@@ -86,6 +86,80 @@ export async function createLook(
   return { id: look.id }
 }
 
+// ─── Community: submit a multi-polish dupe combination ───────────────────────
+
+export interface SubmitLookAsDupeInput {
+  target_polish_id: string
+  notes?: string
+  components: Array<{
+    polish_id: string
+    step_order: number
+    role: ComponentRole
+  }>
+}
+
+export async function submitLookAsDupe(
+  input: SubmitLookAsDupeInput
+): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  // Fetch polish names server-side to build the auto-generated name
+  const polishIds = input.components.map(c => c.polish_id)
+  const { data: polishes } = await db
+    .from('polishes')
+    .select('id, name')
+    .in('id', polishIds)
+
+  const nameMap: Record<string, string> = Object.fromEntries(
+    (polishes ?? []).map((p: { id: string; name: string }) => [p.id, p.name])
+  )
+  const autoName = input.components
+    .sort((a, b) => a.step_order - b.step_order)
+    .map(c => nameMap[c.polish_id] ?? 'Unknown')
+    .join(' + ')
+
+  const { data: look, error: lookError } = await db
+    .from('looks')
+    .insert({
+      name: autoName,
+      description: input.notes || null,
+      target_polish_id: input.target_polish_id,
+      source_type: 'admin',
+      is_featured: false,
+      created_by: user.id,
+      status: 'pending',
+    })
+    .select('id')
+    .single()
+
+  if (lookError || !look) {
+    return { error: lookError?.message ?? 'Failed to submit combination' }
+  }
+
+  const { error: compError } = await db.from('look_components').insert(
+    input.components.map(c => ({
+      look_id: look.id,
+      polish_id: c.polish_id,
+      step_order: c.step_order,
+      role: c.role,
+      notes: null,
+    }))
+  )
+
+  if (compError) {
+    await db.from('looks').delete().eq('id', look.id)
+    return { error: compError.message }
+  }
+
+  revalidatePath('/admin/looks')
+  return { id: look.id }
+}
+
 // ─── Admin: approve / reject ──────────────────────────────────────────────────
 
 export async function approveLook(
