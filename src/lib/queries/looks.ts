@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import type {
   Look,
   LookWithComponents,
@@ -306,14 +306,21 @@ export async function getLookById(id: string): Promise<LookWithComponents | null
 }
 
 export async function getPendingLooks(): Promise<LookCard[]> {
-  const supabase = await createClient()
+  // Must use admin client — looks_public_read RLS only exposes approved looks,
+  // with no admin-override SELECT policy, so the regular client always returns
+  // empty for status='pending'.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any
-  const { data } = await db
+  const db = createAdminClient() as any
+  const { data, error } = await db
     .from('looks')
     .select(LOOK_SELECT)
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('getPendingLooks error:', error)
+    return []
+  }
 
   return (data as unknown as LookCard[]) ?? []
 }

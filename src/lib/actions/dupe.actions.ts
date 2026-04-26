@@ -34,6 +34,7 @@ export async function submitDupe(formData: {
     .single()
 
   if (error) {
+    console.error('submitDupe insert error:', error)
     if (error.code === '23505') {
       return { error: 'This dupe pair has already been submitted.' }
     }

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import { getPendingLooks } from '@/lib/queries/looks'
 import { PolishSwatch } from '@/components/polish/PolishSwatch'

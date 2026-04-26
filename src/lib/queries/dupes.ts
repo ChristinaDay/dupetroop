@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import type { DupeWithPolishes, DupeFilters } from '@/lib/types/app.types'
 
 const DUPE_SELECT = `
@@ -129,12 +129,18 @@ export async function getRecentDupes(limit = 10): Promise<DupeWithPolishes[]> {
 }
 
 export async function getPendingDupes(): Promise<DupeWithPolishes[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
+  // Use admin client to bypass RLS — dupes_select requires a valid admin JWT
+  // flowing through cookies, which can silently fail and return empty.
+  const { data, error } = await createAdminClient()
     .from('dupes')
     .select(DUPE_SELECT)
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('getPendingDupes error:', error)
+    return []
+  }
 
   return (data as unknown as DupeWithPolishes[]) ?? []
 }

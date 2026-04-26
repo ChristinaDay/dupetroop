@@ -46,7 +46,14 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // non-fatal — render unauthenticated if auth is unreachable
+  }
 
   let username: string | null = null
   let isAdmin = false
