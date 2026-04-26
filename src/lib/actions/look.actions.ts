@@ -173,9 +173,11 @@ export async function approveLook(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'moderator'].includes(profile.role)) return { error: 'Insufficient permissions' }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any
-  const { error } = await db
+  const { error } = await (createAdminClient() as any)
     .from('looks')
     .update({ status: 'approved' })
     .eq('id', lookId)
@@ -185,6 +187,7 @@ export async function approveLook(
   revalidatePath('/')
   revalidatePath('/looks')
   revalidatePath(`/looks/${lookId}`)
+  revalidatePath('/admin/looks')
   return { success: true }
 }
 
@@ -196,14 +199,38 @@ export async function rejectLook(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'moderator'].includes(profile.role)) return { error: 'Insufficient permissions' }
+
   const updateData: Record<string, unknown> = { status: 'rejected' }
   if (reason) updateData.description = reason
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any
-  const { error } = await db
+  const { error } = await (createAdminClient() as any)
     .from('looks')
     .update(updateData)
+    .eq('id', lookId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/looks')
+  return { success: true }
+}
+
+export async function deleteLook(
+  lookId: string
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'moderator'].includes(profile.role)) return { error: 'Insufficient permissions' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (createAdminClient() as any)
+    .from('looks')
+    .delete()
     .eq('id', lookId)
 
   if (error) return { error: error.message }

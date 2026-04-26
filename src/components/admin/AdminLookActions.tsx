@@ -3,11 +3,12 @@
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { approveLook, rejectLook } from '@/lib/actions/look.actions'
+import { approveLook, rejectLook, deleteLook } from '@/lib/actions/look.actions'
 import { toast } from 'sonner'
 
 export function AdminLookActions({ lookId }: { lookId: string }) {
   const [rejecting, setRejecting] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [reason, setReason] = useState('')
   const [isPending, startTransition] = useTransition()
 
@@ -24,6 +25,14 @@ export function AdminLookActions({ lookId }: { lookId: string }) {
       const result = await rejectLook(lookId, reason.trim() || undefined)
       if ('error' in result) toast.error(result.error)
       else { toast.success('Look rejected.'); setRejecting(false) }
+    })
+  }
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      const result = await deleteLook(lookId)
+      if ('error' in result) toast.error(result.error)
+      else { toast.success('Deleted.'); setConfirming(false) }
     })
   }
 
@@ -47,6 +56,14 @@ export function AdminLookActions({ lookId }: { lookId: string }) {
             </Button>
           </div>
         </div>
+      ) : confirming ? (
+        <div className="flex gap-2 items-center">
+          <span className="text-sm text-muted-foreground">Delete permanently?</span>
+          <Button size="sm" variant="destructive" onClick={handleDelete} disabled={isPending}>
+            {isPending ? 'Deleting…' : 'Yes, delete'}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>Cancel</Button>
+        </div>
       ) : (
         <div className="flex gap-2">
           <Button size="sm" onClick={handleApprove} disabled={isPending}>
@@ -54,6 +71,10 @@ export function AdminLookActions({ lookId }: { lookId: string }) {
           </Button>
           <Button size="sm" variant="outline" onClick={() => setRejecting(true)} disabled={isPending}>
             Reject
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} disabled={isPending}
+            className="text-destructive hover:text-destructive">
+            Delete
           </Button>
         </div>
       )}

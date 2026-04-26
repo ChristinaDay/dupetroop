@@ -36,6 +36,9 @@ export default async function AdminLooksPage() {
                     )}
                   </div>
                   <p className="font-bold">{look.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Submitted {new Date(look.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </p>
                   {look.description && (
                     <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
                       {look.description}
