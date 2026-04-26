@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import type { LookSourceType, ComponentRole } from '@/lib/types/app.types'
 import { slugify } from '@/lib/utils/slugify'
 
@@ -105,10 +105,14 @@ export async function submitLookAsDupe(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // Use admin client for writes — the looks_public_read RLS policy only allows
+  // SELECT on approved rows, so .insert().select() would return nothing for a
+  // pending look if we used the regular client.
+  const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any
+  const db = admin as any
 
-  // Fetch polish names server-side to build the auto-generated name
+  // Fetch polish names to build the auto-generated name
   const polishIds = input.components.map(c => c.polish_id)
   const { data: polishes } = await db
     .from('polishes')
