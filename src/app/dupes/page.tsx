@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getDupes } from '@/lib/queries/dupes'
+import { getLooksForBrowse } from '@/lib/queries/looks'
 import { DupeCard } from '@/components/dupe/DupeCard'
+import { LookCard } from '@/components/look/LookCard'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
@@ -21,7 +23,10 @@ export default async function DupesPage({ searchParams }: PageProps) {
   const sort = (params.sort ?? 'newest') as 'newest' | 'top_rated' | 'most_opinions'
   const page = params.page ? parseInt(params.page) : 1
 
-  const { dupes, total } = await getDupes({ sort, page })
+  const [{ dupes, total }, { looks, total: looksTotal }] = await Promise.all([
+    getDupes({ sort, page }),
+    getLooksForBrowse(18),
+  ])
 
   const PAGE_SIZE = 20
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -100,6 +105,28 @@ export default async function DupesPage({ searchParams }: PageProps) {
           <Button asChild className="mt-4">
             <Link href="/dupes/submit">Submit a dupe</Link>
           </Button>
+        </div>
+      )}
+
+      {/* Swaps section */}
+      {looksTotal > 0 && (
+        <div className="mt-16">
+          <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight">Multi-polish Swaps</h2>
+              <p className="text-muted-foreground text-sm mt-0.5">{looksTotal.toLocaleString()} layering combinations</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {looks.map(look => (
+              <LookCard key={look.id} look={look} components={look.components} />
+            ))}
+          </div>
+          {looksTotal > 18 && (
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              Showing 18 of {looksTotal.toLocaleString()} swaps
+            </p>
+          )}
         </div>
       )}
     </div>

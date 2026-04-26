@@ -57,6 +57,40 @@ export async function getLooks(limit = 20, offset = 0): Promise<LookCard[]> {
   return (data as unknown as LookCard[]) ?? []
 }
 
+export async function getLooksForBrowse(
+  limit = 18,
+  offset = 0
+): Promise<{ looks: LookWithComponents[]; total: number }> {
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const [{ data, error }, { count }] = await Promise.all([
+    db
+      .from('looks')
+      .select(LOOK_DETAIL_SELECT)
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1),
+    db
+      .from('looks')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'approved'),
+  ])
+
+  if (error) {
+    console.error('getLooksForBrowse error:', error)
+    return { looks: [], total: 0 }
+  }
+
+  const looks = ((data as unknown as (LookCard & { look_components: LookComponent[] })[]) ?? []).map(look => ({
+    ...look,
+    components: [...(look.look_components ?? [])].sort((a, b) => a.step_order - b.step_order),
+  })) as unknown as LookWithComponents[]
+
+  return { looks, total: count ?? 0 }
+}
+
 export type ComponentWithAlternatives = {
   id: string
   look_id: string
