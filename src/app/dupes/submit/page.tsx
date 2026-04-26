@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Search, ArrowRight, Check, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,6 @@ import { submitLookAsDupe } from '@/lib/actions/look.actions'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { PolishWithBrand, ComponentRole } from '@/lib/types/app.types'
-import { Suspense } from 'react'
 
 type Step = 1 | 2 | 3
 
@@ -107,9 +106,8 @@ function PolishSearchCombobox({
   )
 }
 
-function SubmitDupeForm() {
+export default function SubmitDupePage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [step, setStep] = useState<Step>(1)
   const [polishA, setPolishA] = useState<PolishWithBrand | null>(null)
   const [components, setComponents] = useState<DupeComponent[]>([])
@@ -169,22 +167,6 @@ function SubmitDupeForm() {
         }
       }
     })
-  }
-
-  // Pre-fill polishA from ?a= query param on first render
-  const prefilledId = searchParams.get('a')
-  const [prefillDone, setPrefillDone] = useState(false)
-  if (prefilledId && !prefillDone && !polishA) {
-    setPrefillDone(true)
-    const supabase = createClient()
-    supabase
-      .from('polishes')
-      .select('*, brand:brands(*), collection:collections(*)')
-      .eq('id', prefilledId)
-      .single()
-      .then(({ data }) => {
-        if (data) setPolishA(data as unknown as PolishWithBrand)
-      })
   }
 
   const stepLabel = step === 1
@@ -374,10 +356,3 @@ function SubmitDupeForm() {
   )
 }
 
-export default function SubmitDupePage() {
-  return (
-    <Suspense>
-      <SubmitDupeForm />
-    </Suspense>
-  )
-}
