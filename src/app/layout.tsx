@@ -55,7 +55,7 @@ export default async function RootLayout({
       .from('profiles')
       .select('username, role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     username = profile?.username ?? null
     isAdmin = profile?.role === 'admin'
   }
