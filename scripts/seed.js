@@ -32,6 +32,7 @@ const brands = [
   { name: 'Cracked', slug: 'cracked', website_url: 'https://crackedpolish.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
   { name: "Bee's Knees Lacquer", slug: 'bees-knees-lacquer', website_url: 'https://beeskneeslacquer.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
   { name: 'Death Valley Nails', slug: 'death-valley-nails', website_url: 'https://deathvalleynails.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
+  { name: 'Fancy Gloss', slug: 'fancy-gloss', website_url: 'https://fancyglosspolish.com', is_indie: true, price_tier: 3, country_of_origin: 'US' },
 ]
 
 // ─── POLISHES ─────────────────────────────────────────────────────────────────

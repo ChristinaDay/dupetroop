@@ -1175,6 +1175,104 @@ async function run() {
     } catch (e) { console.error('\n  Error:', e.message) }
   }
 
+  // ── Fancy Gloss (Shopify — tags use "Nail Lacquer/FinishType" format) ──────────
+  if (should('fancy-gloss')) {
+    process.stdout.write('Fetching Fancy Gloss (full catalog)... ')
+
+    // Map their slash-delimited tag suffixes to our finish_category enum.
+    // Priority order: most specific first.
+    const FG_FINISH_MAP = {
+      'magnetic':              'magnetic',
+      'multichromes':          'multichrome',
+      'holos':                 'holo',
+      'reflective':            'holo',
+      'flakies':               'flakies',
+      'bar glitter':           'glitter',
+      'glitters':              'glitter',
+      'shimmers':              'shimmer',
+      'metallics':             'shimmer',
+      'pearls':                'shimmer',
+      'cremes':                'cream',
+      'neons':                 'cream',
+      'sheers':                'jelly',
+      'base coats & top coats':'topper',
+      'toppers':               'topper',
+      'thermals':              'other',
+      'tri-thermals':          'other',
+      'glow in the dark':      'other',
+      'stamping polishes':     'other',
+      'mystery polishes':      'other',
+    }
+
+    // Non-polish tag signals — skip if no "Nail Lacquer" tag present
+    const FG_NON_POLISH_TAGS = new Set(['Charms', 'Magnets', 'Nail Decals & Stickers'])
+
+    function fancyGlossProductToPolish(product, brandId) {
+      const tags = Array.isArray(product.tags) ? product.tags : []
+
+      // Skip accessories that have no nail lacquer tag at all
+      const hasLacquerTag = tags.some(t => t.toLowerCase().startsWith('nail lacqu'))
+      if (!hasLacquerTag && tags.some(t => FG_NON_POLISH_TAGS.has(t))) return null
+
+      // Determine finish from the "Nail Lacquer/X" tag suffix
+      let finish = 'other'
+      for (const tag of tags) {
+        const lower = tag.toLowerCase()
+        if (!lower.startsWith('nail lacqu')) continue
+        const slash = lower.indexOf('/')
+        if (slash === -1) continue
+        const suffix = lower.slice(slash + 1).trim()
+        if (FG_FINISH_MAP[suffix]) { finish = FG_FINISH_MAP[suffix]; break }
+      }
+
+      // Fallback: infer from title
+      if (finish === 'other') finish = finishFromName(product.title)
+
+      // Color: scan description for color words
+      const desc = (product.body_html ?? '').replace(/<[^>]+>/g, '').toLowerCase()
+      const COLOR_WORDS = [
+        ['black', 'black'], ['white', 'neutral'], ['silver', 'neutral'], ['gold', 'yellow'],
+        ['yellow', 'yellow'], ['orange', 'orange'], ['red', 'red'], ['pink', 'pink'],
+        ['magenta', 'pink'], ['purple', 'purple'], ['violet', 'purple'],
+        ['blue', 'blue'], ['teal', 'green'], ['green', 'green'], ['olive', 'green'],
+        ['brown', 'neutral'], ['nude', 'neutral'], ['coral', 'pink'],
+        ['neon green', 'green'], ['neon pink', 'pink'], ['neon yellow', 'yellow'],
+      ]
+      let colorFamily = 'neutral'
+      for (const [word, family] of COLOR_WORDS) {
+        if (desc.includes(word)) { colorFamily = family; break }
+      }
+
+      const image = product.images?.[0]?.src ?? null
+      const price = parseFloat(product.variants?.[0]?.price)
+      const isLimited = tags.some(t => ['limited', 'limited-edition', 'le'].includes(t.toLowerCase()))
+
+      const record = {
+        brand_id:        brandId,
+        name:            product.title,
+        slug:            product.handle,
+        hex_color:       COLOR_HEX_MAP[colorFamily] ?? '#888888',
+        finish_category: finish,
+        color_family:    colorFamily,
+        msrp_usd:        (!isNaN(price) && price > 0) ? price : 11,
+        is_verified:     true,
+        is_limited:      isLimited,
+      }
+      if (image) record.images = [image]
+      return record
+    }
+
+    try {
+      const allProducts = await fetchShopifyAllProducts('fancyglosspolish.com')
+      const polishes = allProducts
+        .map(p => fancyGlossProductToPolish(p, brandId['fancy-gloss']))
+        .filter(Boolean)
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
   if (!DRY_RUN) {
     console.log(`\n✓ Total upserted: ${totalUpserted}`)
   }
