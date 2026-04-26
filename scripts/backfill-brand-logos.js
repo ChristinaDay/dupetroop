@@ -267,6 +267,13 @@ const BRAND_CONFIG = {
   'essie':       { strategy: 'manual', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Essie_logo.svg/320px-Essie_logo.svg.png' },
   'sally-hansen':{ strategy: 'manual', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Sally_Hansen_logo.svg/320px-Sally_Hansen_logo.svg.png' },
 
+  // Australia
+  'emily-de-molly': { domain: 'www.emilydemolly.com', strategy: 'html' },
+  'kitti-nails':    { strategy: 'manual', logoUrl: 'https://www.kittinails.com/cdn/shop/files/Transfer_sticker_3_x_3_cm_3_d9c98a83-866b-4beb-9787-20d14bdf2599.png?v=1750732079&width=600' },
+
+  // UK
+  'barry-m': { strategy: 'manual', logoUrl: 'https://cdn.shopify.com/s/files/1/1031/8757/9144/files/Barry_M_Logo_Magenta_RGB.jpg?v=1774011219' },
+
   // Site offline
   'different-dimension': { strategy: 'skip' },
 }

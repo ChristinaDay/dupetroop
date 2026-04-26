@@ -1273,6 +1273,197 @@ async function run() {
     } catch (e) { console.error('\n  Error:', e.message) }
   }
 
+  // ── Emily de Molly (Shopify — finish from product description) ───────────────
+  // Tags are minimal ('nail polish', color swatches). All finish info is in
+  // the description: "A multichrome that shifts…", "linear holographic…", etc.
+  if (should('emily-de-molly')) {
+    process.stdout.write('Fetching Emily de Molly (full catalog)... ')
+    try {
+      const allProducts = await fetchShopifyAllProducts('www.emilydemolly.com')
+      const polishes = allProducts.map(p => {
+        const desc = (p.body_html ?? '').replace(/<[^>]+>/g, '').toLowerCase()
+        const title = p.title.toLowerCase()
+        const combined = `${title} ${desc}`
+
+        // Finish: scan description for explicit finish language
+        let finish = 'other'
+        if (combined.includes('magnetic'))                                              finish = 'magnetic'
+        else if (combined.includes('multichrome') || combined.includes('multi chrome')) finish = 'multichrome'
+        else if (combined.includes('duochrome') || combined.includes('duo chrome'))     finish = 'duochrome'
+        else if (combined.includes('holographic') || combined.includes('linear holo') || combined.includes(' holo ')) finish = 'holo'
+        else if (combined.includes('flakie') || combined.includes('flake'))             finish = 'flakies'
+        else if (combined.includes('glitter'))                                          finish = 'glitter'
+        else if (combined.includes('thermal') || combined.includes('colour changing') || combined.includes('color changing')) finish = 'other'
+        else if (combined.includes('shimmer') || combined.includes('shimmery') || combined.includes('blue shimmer') || combined.includes('strong shimmer')) finish = 'shimmer'
+        else if (combined.includes('jelly') || combined.includes('crelly'))             finish = 'jelly'
+        else if (combined.includes('matte'))                                            finish = 'matte'
+        else if (combined.includes('topper') || combined.includes('top coat'))          finish = 'topper'
+        else if (combined.includes('cream') || combined.includes('creme') || combined.includes('crème') || combined.includes('opaque')) finish = 'cream'
+
+        // Color: first color word found in description
+        const COLOR_WORDS = [
+          ['black', 'black'], ['white', 'neutral'], ['silver', 'neutral'], ['gold', 'yellow'],
+          ['yellow', 'yellow'], ['orange', 'orange'], ['red', 'red'], ['coral', 'pink'],
+          ['pink', 'pink'], ['magenta', 'pink'], ['purple', 'purple'], ['violet', 'purple'],
+          ['blue', 'blue'], ['teal', 'green'], ['green', 'green'], ['brown', 'neutral'],
+          ['nude', 'neutral'], ['peach', 'pink'], ['burgundy', 'red'], ['navy', 'blue'],
+        ]
+        let colorFamily = 'neutral'
+        for (const [word, family] of COLOR_WORDS) {
+          if (desc.includes(word)) { colorFamily = family; break }
+        }
+
+        const image = p.images?.[0]?.src ?? null
+        const price = parseFloat(p.variants?.[0]?.price)
+        const isLimited = (p.tags ?? []).some(t => ['limited', 'limited-edition', 'le'].includes(t.toLowerCase()))
+
+        const record = {
+          brand_id:        brandId['emily-de-molly'],
+          name:            p.title,
+          slug:            p.handle,
+          hex_color:       COLOR_HEX_MAP[colorFamily] ?? '#888888',
+          finish_category: finish,
+          color_family:    colorFamily,
+          msrp_usd:        (!isNaN(price) && price > 0) ? price : 12,
+          is_verified:     true,
+          is_limited:      isLimited,
+        }
+        if (image) record.images = [image]
+        return record
+      })
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
+  // ── Kitti Nails (Shopify AU — finish from description, same pattern as EdM) ──
+  if (should('kitti-nails')) {
+    process.stdout.write('Fetching Kitti Nails (full catalog)... ')
+    try {
+      const allProducts = await fetchShopifyAllProducts('www.kittinails.com')
+      const polishes = allProducts.map(p => {
+        const desc = (p.body_html ?? '').replace(/<[^>]+>/g, '').toLowerCase()
+        const combined = `${p.title.toLowerCase()} ${desc}`
+
+        let finish = 'other'
+        if (combined.includes('magnetic'))                                              finish = 'magnetic'
+        else if (combined.includes('multichrome') || combined.includes('multi chrome')) finish = 'multichrome'
+        else if (combined.includes('duochrome') || combined.includes('duo chrome'))     finish = 'duochrome'
+        else if (combined.includes('holographic') || combined.includes('linear holo') || combined.includes(' holo ')) finish = 'holo'
+        else if (combined.includes('flakie') || combined.includes('flake'))             finish = 'flakies'
+        else if (combined.includes('glitter'))                                          finish = 'glitter'
+        else if (combined.includes('thermal'))                                          finish = 'other'
+        else if (combined.includes('shimmer'))                                          finish = 'shimmer'
+        else if (combined.includes('jelly') || combined.includes('crelly'))             finish = 'jelly'
+        else if (combined.includes('matte'))                                            finish = 'matte'
+        else if (combined.includes('topper') || combined.includes('top coat'))          finish = 'topper'
+        else if (combined.includes('crème') || combined.includes('creme') || combined.includes('cream') || combined.includes('opaque')) finish = 'cream'
+
+        const COLOR_WORDS = [
+          ['black', 'black'], ['white', 'neutral'], ['silver', 'neutral'], ['gold', 'yellow'],
+          ['yellow', 'yellow'], ['orange', 'orange'], ['red', 'red'], ['coral', 'pink'],
+          ['pink', 'pink'], ['magenta', 'pink'], ['purple', 'purple'], ['violet', 'purple'],
+          ['blue', 'blue'], ['teal', 'green'], ['green', 'green'], ['brown', 'neutral'],
+          ['nude', 'neutral'], ['peach', 'pink'], ['burgundy', 'red'], ['navy', 'blue'],
+          ['watermelon', 'pink'], ['emerald', 'green'], ['lavender', 'purple'],
+        ]
+        let colorFamily = 'neutral'
+        for (const [word, family] of COLOR_WORDS) {
+          if (desc.includes(word)) { colorFamily = family; break }
+        }
+
+        const image = p.images?.[0]?.src ?? null
+        const price = parseFloat(p.variants?.[0]?.price)
+
+        const record = {
+          brand_id:        brandId['kitti-nails'],
+          name:            p.title,
+          slug:            p.handle,
+          hex_color:       COLOR_HEX_MAP[colorFamily] ?? '#888888',
+          finish_category: finish,
+          color_family:    colorFamily,
+          msrp_usd:        (!isNaN(price) && price > 0) ? price : 14,
+          is_verified:     true,
+          is_limited:      false,
+        }
+        if (image) record.images = [image]
+        return record
+      })
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
+  // ── Barry M (Shopify UK — nail-only filter, finish from product line in title)
+  // Barry M is a full beauty brand. Title format: "Product Line | Color Name".
+  // Product line encodes finish (Gelly = jelly, Glitter Bomb = glitter, etc.).
+  if (should('barry-m')) {
+    process.stdout.write('Fetching Barry M (nail products only)... ')
+
+    const BARRY_M_NAIL_TYPES = new Set(['Nail Paint', 'Nail', 'Topcoat', 'Basecoat', 'Nail Care'])
+
+    // Map product line prefix → finish category (longest/most-specific match first)
+    const BM_LINE_FINISH = [
+      ['Glitter Bomb',             'glitter'],
+      ['Velvet Texture',           'other'],
+      ['Colour Changing',          'other'],
+      ['Nail Effects',             'other'],
+      ['Matte Top Coat',           'topper'],
+      ['All in One',               'topper'],
+      ['Base & Top Coat',          'topper'],
+      ['Basecoat',                 'topper'],
+      ['Topcoat',                  'topper'],
+      ['Gelly Hi Shine',           'jelly'],
+      ['Speedy Quick Dry',         'cream'],
+      ['Air Breathable',           'cream'],
+      ['Hi Shine',                 'cream'],
+      ['Cotton',                   'cream'],
+      ['Satin',                    'satin'],
+      ['Matte',                    'matte'],
+    ]
+
+    try {
+      const allProducts = await fetchShopifyAllProducts('www.barrym.com')
+      const polishes = allProducts
+        .filter(p => BARRY_M_NAIL_TYPES.has(p.product_type ?? ''))
+        .map(p => {
+          // Split "Product Line | Color Name" → use color name only
+          const parts = p.title.split(' | ')
+          const colorName = parts.length > 1 ? parts[parts.length - 1].trim() : p.title
+          const productLine = parts.length > 1 ? parts[0].trim() : ''
+
+          // Finish from product line
+          let finish = 'other'
+          for (const [line, f] of BM_LINE_FINISH) {
+            if (productLine.toLowerCase().includes(line.toLowerCase())) { finish = f; break }
+          }
+          if (finish === 'other') finish = finishFromName(colorName)
+
+          const image = p.images?.[0]?.src ?? null
+          const price = parseFloat(p.variants?.[0]?.price)
+
+          const record = {
+            brand_id:        brandId['barry-m'],
+            name:            colorName,
+            slug:            p.handle,
+            hex_color:       '#888888',
+            finish_category: finish,
+            color_family:    'neutral',
+            msrp_usd:        (!isNaN(price) && price > 0) ? price : 5,
+            is_verified:     true,
+            is_limited:      false,
+          }
+          if (image) record.images = [image]
+          return record
+        })
+      console.log(`${polishes.length} polishes`)
+      if (!DRY_RUN) totalUpserted += await upsertBatch(polishes)
+      else polishes.forEach(p => console.log(`  ${p.finish_category.padEnd(12)} £${p.msrp_usd}  ${p.name}`))
+    } catch (e) { console.error('\n  Error:', e.message) }
+  }
+
   if (!DRY_RUN) {
     console.log(`\n✓ Total upserted: ${totalUpserted}`)
   }

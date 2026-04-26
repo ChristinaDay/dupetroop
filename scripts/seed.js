@@ -33,6 +33,11 @@ const brands = [
   { name: "Bee's Knees Lacquer", slug: 'bees-knees-lacquer', website_url: 'https://beeskneeslacquer.com', is_indie: true, price_tier: 3, country_of_origin: 'United States' },
   { name: 'Death Valley Nails', slug: 'death-valley-nails', website_url: 'https://deathvalleynails.com', is_indie: true, price_tier: 3, country_of_origin: 'United States' },
   { name: 'Fancy Gloss', slug: 'fancy-gloss', website_url: 'https://fancyglosspolish.com', is_indie: true, price_tier: 3, country_of_origin: 'United States' },
+  // Australia
+  { name: 'Emily de Molly', slug: 'emily-de-molly', website_url: 'https://www.emilydemolly.com', is_indie: true, price_tier: 3, country_of_origin: 'Australia' },
+  { name: 'Kitti Nails', slug: 'kitti-nails', website_url: 'https://www.kittinails.com', is_indie: true, price_tier: 3, country_of_origin: 'Australia' },
+  // UK
+  { name: 'Barry M', slug: 'barry-m', website_url: 'https://www.barrym.com', is_indie: false, price_tier: 2, country_of_origin: 'United Kingdom' },
 ]
 
 // ─── POLISHES ─────────────────────────────────────────────────────────────────
