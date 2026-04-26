@@ -256,6 +256,7 @@ const BRAND_CONFIG = {
   'cracked': { strategy: 'manual', logoUrl: 'https://crackedpolish.com/cdn/shop/files/cracked_logo.svg?v=1722576470' },
   'bees-knees-lacquer': { domain: 'www.beeskneeslacquer.com', strategy: 'html' },
   'death-valley-nails': { domain: 'deathvalleynails.com',   strategy: 'html' },
+  'fancy-gloss': { strategy: 'manual', logoUrl: 'https://fancyglosspolish.com/cdn/shop/files/fglogo_e98d5631-27ac-43e7-a1d5-6e086b4e99fa.png?v=1752514299&width=600' },
   'zoya':           { domain: 'www.zoya.com',               strategy: 'html' },
 
   // Cloudflare-protected
